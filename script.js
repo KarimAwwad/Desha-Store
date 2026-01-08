@@ -362,7 +362,6 @@ document.addEventListener("DOMContentLoaded", () => {
             activeCard.querySelector('img').src = saved.image_url;
             console.log("✅ Supabase Sync Complete!");
 
-            // Trigger global refresh for real-time
             fetchProducts();
         })();
     });
@@ -488,11 +487,9 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
-    // --- RE-FETCH LOGIC FOR REAL-TIME ---
     async function fetchProducts() {
         const skeletons = [];
         document.querySelectorAll(".grid").forEach(grid => {
-            // Remove existing cards to prevent duplication on re-render
             const existingCards = grid.querySelectorAll(".card:not(.upload-area)");
             existingCards.forEach(c => c.remove());
 
@@ -513,9 +510,10 @@ document.addEventListener("DOMContentLoaded", () => {
         if (data) {
             data.forEach(p => insertCardIntoGrid(createProductCard(p), p.category));
         }
+
+        applyAdminLock();
     }
 
-    // Initial Load
     fetchProducts();
 
     document.querySelector('.filter-btn[data-category="all"]').click();
@@ -610,16 +608,19 @@ document.addEventListener("DOMContentLoaded", () => {
             if (adminZone) adminZone.style.display = 'none';
 
             // Show My Orders for users
-            if (userOrdersLink) userOrdersLink.style.display = 'block';
+            if (userOrdersLink) userOrdersLink.style.display = user ? 'block' : 'none';
 
             uploadAreas.forEach(area => {
                 area.style.setProperty('display', 'none', 'important');
             });
 
-            const style = document.createElement('style');
-            style.id = "admin-lock-style";
-            style.innerHTML = `.edit-btn, .delete-btn, .upload-area { display: none !important; }`;
-            document.head.appendChild(style);
+            const styleId = "admin-lock-style";
+            if (!document.getElementById(styleId)) {
+                const style = document.createElement('style');
+                style.id = styleId;
+                style.innerHTML = `.edit-btn, .delete-btn, .upload-area { display: none !important; }`;
+                document.head.appendChild(style);
+            }
         } else {
             console.log("👑 Admin detected.");
 
@@ -646,23 +647,23 @@ document.addEventListener("DOMContentLoaded", () => {
                 area.style.setProperty('display', 'flex', 'important');
             });
 
-            const style = document.createElement('style');
-            style.id = "admin-cart-lock";
-            style.innerHTML = `.add-to-cart-btn { display: none !important; }`;
-            document.head.appendChild(style);
+            const styleId = "admin-cart-lock";
+            if (!document.getElementById(styleId)) {
+                const style = document.createElement('style');
+                style.id = styleId;
+                style.innerHTML = `.add-to-cart-btn { display: none !important; }`;
+                document.head.appendChild(style);
+            }
         }
     }
 
-    /* --------------------------
-       🔄 REAL-TIME LISTENER
-    -------------------------- */
+    // 🔄 REAL-TIME LISTENER
     supabaseClient
-        .channel('any-db-changes')
+        .channel('stock-updates')
         .on('postgres_changes',
             {event: '*', schema: 'public', table: 'products'},
             (payload) => {
-                console.log('Stock or details changed in DB, updating UI...', payload.new);
-                // Call the re-fetch function to update buttons and badges automatically
+                console.log('Stock changed in DB, updating UI...', payload.new);
                 fetchProducts();
             }
         )
