@@ -227,12 +227,9 @@ document.addEventListener("DOMContentLoaded", () => {
                     ${isOutOfStock ? 'Currently Out of Stock' : 'In Stock: ' + stockCount}
                 </p>
             </div>
-            <div class="card-actions" style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%;">
-                <div class="admin-btns-row" style="display: flex; gap: 15px; justify-content: center; align-items: center; width: 100%;">
-                    <button class="edit-btn">✏️ Edit</button>
-                    <button class="delete-btn">🗑️ Delete</button>
-                </div>
-            
+            <div class="card-actions">
+                <button class="edit-btn">✏️ Edit</button>
+                <button class="delete-btn">🗑️ Delete</button>
                 ${!isOutOfStock ? `
                 <div class="cart-controls-wrapper" style="width: 100%; margin-top: 10px;">
                     <button class="add-to-cart-btn" style="${(quantityInCart > 0) ? 'display:none;' : 'display:block; width:100%;'}">
