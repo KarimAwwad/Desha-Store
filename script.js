@@ -494,12 +494,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (addBtn.disabled) return;
                 addBtn.disabled = true;
 
-                // 🔥 CAPTURE VALUES IMMEDIATELY
-                // This ensures the data exists even after the 5-second wait
-                const pName = product.name;
-                const pPrice = product.price;
-                const pImg = product.image_url;
-                const pId = product.id;
                 const stockLimit = parseInt(card.dataset.stock) || 0;
 
                 if (stockLimit <= 0) {
@@ -524,11 +518,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 // 5 Second Loading Delay
                 setTimeout(() => {
-                    // 1. 🔥 FIRST: Update the Cart Data using Captured Variables
+                    // 1. 🔥 FIRST: Update the Cart Data
                     if (window.addToCart) {
                         try {
-                            // Use the captured pName, pPrice, etc.
-                            window.addToCart(pName, pPrice, pImg, pId);
+                            // Use the product object directly from the loop
+                            window.addToCart(product.name, product.price, product.image_url, product.id);
 
                             // 2. SECOND: Only if logic succeeds, update UI
                             addBtn.style.display = "none";
@@ -543,13 +537,11 @@ document.addEventListener("DOMContentLoaded", () => {
                             showToast("Error updating cart. Please try again.");
                             addBtn.disabled = false;
                             addBtn.innerHTML = originalContent;
-                            addBtn.style.opacity = "1";
                         }
                     } else {
                         console.error("addToCart function is not globally available.");
                         addBtn.disabled = false;
                         addBtn.innerHTML = originalContent;
-                        addBtn.style.opacity = "1";
                     }
                 }, 5000);
             });
