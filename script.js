@@ -361,6 +361,9 @@ document.addEventListener("DOMContentLoaded", () => {
             activeCard.dataset.stock = saved.stock_quantity;
             activeCard.querySelector('img').src = saved.image_url;
             console.log("✅ Supabase Sync Complete!");
+
+            // Trigger global refresh for real-time
+            fetchProducts();
         })();
     });
 
@@ -485,9 +488,14 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
-    (async () => {
+    // --- RE-FETCH LOGIC FOR REAL-TIME ---
+    async function fetchProducts() {
         const skeletons = [];
         document.querySelectorAll(".grid").forEach(grid => {
+            // Remove existing cards to prevent duplication on re-render
+            const existingCards = grid.querySelectorAll(".card:not(.upload-area)");
+            existingCards.forEach(c => c.remove());
+
             for (let i = 0; i < 3; i++) {
                 const skel = document.createElement("div");
                 skel.className = "card skeleton";
@@ -505,7 +513,10 @@ document.addEventListener("DOMContentLoaded", () => {
         if (data) {
             data.forEach(p => insertCardIntoGrid(createProductCard(p), p.category));
         }
-    })();
+    }
+
+    // Initial Load
+    fetchProducts();
 
     document.querySelector('.filter-btn[data-category="all"]').click();
 
@@ -642,25 +653,21 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-// --- Bottom of script.js ---
-
-// 1. Ensure this only runs AFTER you have initialized: 
-// const supabase = supabase.createClient(URL, KEY);
-
-// 2. The Real-Time Listener
-    supabase
-        .channel('stock-updates')
+    /* --------------------------
+       🔄 REAL-TIME LISTENER
+    -------------------------- */
+    supabaseClient
+        .channel('any-db-changes')
         .on('postgres_changes',
-            {event: 'UPDATE', schema: 'public', table: 'products'},
+            {event: '*', schema: 'public', table: 'products'},
             (payload) => {
-                console.log('Stock changed in DB, updating UI...', payload.new);
-
-                // This must be the name of the function you use to load/draw products
-                // If your function is named fetchProducts, use that here!
+                console.log('Stock or details changed in DB, updating UI...', payload.new);
+                // Call the re-fetch function to update buttons and badges automatically
                 fetchProducts();
             }
         )
         .subscribe();
+
     // Initialize UI and Lock
     updateAuthUI();
     applyAdminLock();
