@@ -493,15 +493,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 // 🛑 RACE CONDITION FIX: Immediately disable
                 if (addBtn.disabled) return;
                 addBtn.disabled = true;
-
                 const stockLimit = parseInt(card.dataset.stock) || 0;
-
                 if (stockLimit <= 0) {
                     showToast("Sorry, this item is out of stock!");
                     addBtn.disabled = false;
                     return;
                 }
-
                 const {data: {user}} = await supabaseClient.auth.getUser();
                 if (!user) {
                     showToast("Please login to start shopping! 🛍️");
@@ -510,43 +507,25 @@ document.addEventListener("DOMContentLoaded", () => {
                     }, 1500);
                     return;
                 }
-
                 // SNAPPY LOADING STATE
                 const originalContent = addBtn.innerHTML;
                 addBtn.innerHTML = "<span>Adding...</span>";
                 addBtn.style.opacity = "0.7";
-
                 // 5 Second Loading Delay
                 setTimeout(() => {
-                    // 1. 🔥 FIRST: Update the Cart Data
+                    addBtn.style.display = "none";
+                    addBtn.style.opacity = "1";
+                    addBtn.innerHTML = originalContent;
+                    addBtn.disabled = false;
+                    qtySelector.style.display = "flex";
+                    qtyDisplay.textContent = "x1";
                     if (window.addToCart) {
-                        try {
-                            // Use the product object directly from the loop
-                            window.addToCart(product.name, product.price, product.image_url, product.id);
-
-                            // 2. SECOND: Only if logic succeeds, update UI
-                            addBtn.style.display = "none";
-                            addBtn.style.opacity = "1";
-                            addBtn.innerHTML = originalContent;
-                            addBtn.disabled = false;
-
-                            qtySelector.style.display = "flex";
-                            qtyDisplay.textContent = "x1";
-                        } catch (err) {
-                            console.error("Cart Update Error:", err);
-                            showToast("Error updating cart. Please try again.");
-                            addBtn.disabled = false;
-                            addBtn.innerHTML = originalContent;
-                        }
-                    } else {
-                        console.error("addToCart function is not globally available.");
-                        addBtn.disabled = false;
-                        addBtn.innerHTML = originalContent;
+                        // FIXED: Using variables defined in createProductCard scope
+                        window.addToCart(product.name, product.price, product.image_url, product.id);
                     }
                 }, 5000);
             });
         }
-
         if (plusBtn) {
             plusBtn.addEventListener("click", () => {
                 let currentQty = parseInt(qtyDisplay.textContent.replace("x", ""));
@@ -905,3 +884,4 @@ document.addEventListener("DOMContentLoaded", () => {
 
     console.log("🚀 Script fully loaded at high line count with Noon UI and Auth Guard!");
 });
+
