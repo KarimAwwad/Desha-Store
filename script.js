@@ -230,9 +230,8 @@ document.addEventListener("DOMContentLoaded", () => {
             <div class="card-actions">
                 <button class="edit-btn">✏️ Edit</button>
                 <button class="delete-btn">🗑️ Delete</button>
-                
-                <div class="cart-controls-wrapper" style="width: 100%; margin-top: 10px;">
-                    ${!isOutOfStock ? `
+                ${!isOutOfStock ? `
+                    <div class="cart-controls-wrapper" style="width: 100%; margin-top: 10px;">
                         <button class="add-to-cart-btn" style="${(quantityInCart > 0) ? 'display:none;' : 'display:block; width:100%;'}">
                             🛒 Add to Cart
                         </button>
@@ -242,8 +241,8 @@ document.addEventListener("DOMContentLoaded", () => {
                             <span class="qty-display" style="font-weight:bold; font-size:15px; color:#333;">x${quantityInCart}</span>
                             <button class="plus-btn" style="background:none; border:none; color:#007bff; font-size:20px; cursor:pointer; font-weight:bold;">+</button>
                         </div>
-                    ` : ''}
-                </div>
+                    </div>
+                ` : ''}
             </div>
         `;
 
