@@ -490,16 +490,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (addBtn) {
             addBtn.addEventListener("click", async () => {
-                // 🛑 RACE CONDITION FIX: Prevent multiple clicks immediately
+                // 🛑 RACE CONDITION FIX: Immediately disable
                 if (addBtn.disabled) return;
                 addBtn.disabled = true;
 
                 const stockLimit = parseInt(card.dataset.stock) || 0;
 
-                // 🛑 CHECK STOCK FIRST
                 if (stockLimit <= 0) {
                     showToast("Sorry, this item is out of stock!");
-                    addBtn.disabled = false; // Re-enable if failed
+                    addBtn.disabled = false;
                     return;
                 }
 
@@ -512,23 +511,24 @@ document.addEventListener("DOMContentLoaded", () => {
                     return;
                 }
 
-                // 🔄 SNAPPY LOADING STATE
+                // SNAPPY LOADING STATE
                 const originalContent = addBtn.innerHTML;
-                addBtn.innerHTML = `<span>Adding...</span>`; // You can replace this with a spinner icon
+                addBtn.innerHTML = "<span>Adding...</span>";
                 addBtn.style.opacity = "0.7";
 
-                // 5 Second Loading Delay as requested
+                // 5 Second Loading Delay
                 setTimeout(() => {
                     addBtn.style.display = "none";
                     addBtn.style.opacity = "1";
                     addBtn.innerHTML = originalContent;
-                    addBtn.disabled = false; // Reset for logic consistency
+                    addBtn.disabled = false;
 
                     qtySelector.style.display = "flex";
                     qtyDisplay.textContent = "x1";
 
                     if (window.addToCart) {
-                        window.addToCart(productName, productPrice, productImage, productId);
+                        // FIXED: Using variables defined in createProductCard scope
+                        window.addToCart(product.name, product.price, product.image_url, product.id);
                     }
                 }, 5000);
             });
