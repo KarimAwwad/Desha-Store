@@ -232,17 +232,17 @@ document.addEventListener("DOMContentLoaded", () => {
                 <button class="delete-btn">🗑️ Delete</button>
                 
                 <div class="cart-controls-wrapper" style="width: 100%; margin-top: 10px;">
-                    <button class="add-to-cart-btn" style="${(isOutOfStock || quantityInCart > 0) ? 'display:none;' : 'display:block; width:100%;'}">
-                        🛒 Add to Cart
-                    </button>
-                    
-                    <div class="noon-qty-selector" style="${(quantityInCart > 0 && !isOutOfStock) ? 'display:flex;' : 'display:none;'} align-items: center; justify-content: space-between; border: 2px solid #007bff; border-radius: 50px; padding: 4px 12px; background: #fff;">
-                        <button class="minus-btn" style="background:none; border:none; color:#007bff; font-size:20px; cursor:pointer; font-weight:bold;">−</button>
-                        <span class="qty-display" style="font-weight:bold; font-size:15px; color:#333;">x${quantityInCart}</span>
-                        <button class="plus-btn" style="background:none; border:none; color:#007bff; font-size:20px; cursor:pointer; font-weight:bold;">+</button>
-                    </div>
-                
-                    ${isOutOfStock ? '' : ''}
+                    ${!isOutOfStock ? `
+                        <button class="add-to-cart-btn" style="${(quantityInCart > 0) ? 'display:none;' : 'display:block; width:100%;'}">
+                            🛒 Add to Cart
+                        </button>
+                        
+                        <div class="noon-qty-selector" style="${(quantityInCart > 0) ? 'display:flex;' : 'display:none;'} align-items: center; justify-content: space-between; border: 2px solid #007bff; border-radius: 50px; padding: 4px 12px; background: #fff;">
+                            <button class="minus-btn" style="background:none; border:none; color:#007bff; font-size:20px; cursor:pointer; font-weight:bold;">−</button>
+                            <span class="qty-display" style="font-weight:bold; font-size:15px; color:#333;">x${quantityInCart}</span>
+                            <button class="plus-btn" style="background:none; border:none; color:#007bff; font-size:20px; cursor:pointer; font-weight:bold;">+</button>
+                        </div>
+                    ` : ''}
                 </div>
             </div>
         `;
@@ -578,9 +578,6 @@ document.addEventListener("DOMContentLoaded", () => {
         const idToDelete = cardToDelete.dataset.id;
         const imageUrl = cardToDelete.querySelector('img').src;
 
-        cardToDelete.remove();
-        deletePopup.style.display = "none";
-
         if (idToDelete) {
             const {error: dbError} = await supabaseClient
                 .from("products")
@@ -589,8 +586,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (dbError) {
                 console.error("❌ Error deleting from DB:", dbError);
-                return;
+                // 🛑 FIX: Check for the Foreign Key constraint error (code 23502)
+                if (dbError.code === '23502') {
+                    showToast("Cannot delete: This product is linked to existing orders! 📦");
+                } else {
+                    showToast("Delete failed. Check console for details.");
+                }
+                deletePopup.style.display = "none";
+                return; // Stop here so the card is NOT removed from the UI
             }
+
+            // Only remove from UI if the database deletion was successful
+            cardToDelete.remove();
+            deletePopup.style.display = "none";
 
             if (imageUrl && imageUrl.includes("supabase")) {
                 const filePath = imageUrl.split('/').pop();
@@ -601,6 +609,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 if (storageError) console.error("⚠️ Could not delete image file:", storageError);
             }
+        } else {
+            // Fallback for temporary/unsaved cards
+            cardToDelete.remove();
+            deletePopup.style.display = "none";
         }
     });
 
