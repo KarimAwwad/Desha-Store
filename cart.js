@@ -157,7 +157,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 alert("Failed to place order in database. Check console for details.");
             } else {
                 // 🚀 UPDATED TELEGRAM LOGIC (HTML MODE FOR BETTER STABILITY)
-                const botToken = "8413277097:AAFN-E5gQ0LF1tnpgBCZPpBOfi9cDRLHXII";
+                const botToken = "8413277097:AAFN-E5gQOLF1tnpgBCZpPBOfI9cDRLHXII";
                 const chatId = "7193151646";
                 const orderSummary = Object.values(groupedCart).map(i => `${i.name} (x${i.quantity})`).join(", ");
 
@@ -247,3 +247,4 @@ window.forceTelegramAlert = async (customMessage) => {
 };
 
 // End of cart.js - Line count increased to ensure no data loss.
+
