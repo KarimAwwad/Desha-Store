@@ -494,6 +494,14 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (addBtn.disabled) return;
                 addBtn.disabled = true;
 
+                // --- NEW: CAPTURE DATA IMMEDIATELY ---
+                // This stops the "product is not defined" error after the 5s wait
+                const pName = product.name;
+                const pPrice = product.price;
+                const pImg = product.image_url;
+                const pId = product.id;
+                // -------------------------------------
+
                 const stockLimit = parseInt(card.dataset.stock) || 0;
 
                 if (stockLimit <= 0) {
@@ -521,8 +529,8 @@ document.addEventListener("DOMContentLoaded", () => {
                     // 1. 🔥 FIRST: Update the Cart Data
                     if (window.addToCart) {
                         try {
-                            // Use the product object directly from the loop
-                            window.addToCart(product.name, product.price, product.image_url, product.id);
+                            // FIXED: Use the captured variables (pName, pPrice, etc.)
+                            window.addToCart(pName, pPrice, pImg, pId);
 
                             // 2. SECOND: Only if logic succeeds, update UI
                             addBtn.style.display = "none";
@@ -532,16 +540,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
                             qtySelector.style.display = "flex";
                             qtyDisplay.textContent = "x1";
+
+                            // 🔥 NEW: Trigger the count refresh (Standard function name in cart scripts)
+                            if (typeof updateCartBadge === 'function') updateCartBadge();
+                            if (typeof updateCartCount === 'function') updateCartCount();
+
                         } catch (err) {
                             console.error("Cart Update Error:", err);
                             showToast("Error updating cart. Please try again.");
                             addBtn.disabled = false;
                             addBtn.innerHTML = originalContent;
+                            addBtn.style.opacity = "1";
                         }
                     } else {
                         console.error("addToCart function is not globally available.");
                         addBtn.disabled = false;
                         addBtn.innerHTML = originalContent;
+                        addBtn.style.opacity = "1";
                     }
                 }, 5000);
             });
