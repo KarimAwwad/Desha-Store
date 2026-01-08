@@ -501,17 +501,18 @@ document.addEventListener("DOMContentLoaded", () => {
                     return;
                 }
 
-                // 1. Logic: Add to the actual cart
+                // 1. Logic: Add the item to the cart array/localStorage
                 if (window.addToCart) {
                     window.addToCart(product.name, product.price, product.image_url, product.id);
                 }
 
-                // 2. UI: Change the button to the quantity selector
+                // 2. UI: Show the quantity selector immediately
                 addBtn.style.display = "none";
                 qtySelector.style.display = "flex";
                 qtyDisplay.textContent = "x1";
 
-                // 3. 🔥 THE FIX: Tell the cart to refresh the "0" to "1" in the header
+                // 3. 🔥 THE FIX: Tell the header to update the count from 0 to 1
+                // We call the standard refresh functions used in cart.js
                 if (typeof updateCartCount === 'function') {
                     updateCartCount();
                 } else if (typeof renderCart === 'function') {
