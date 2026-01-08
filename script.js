@@ -227,23 +227,23 @@ document.addEventListener("DOMContentLoaded", () => {
                     ${isOutOfStock ? 'Currently Out of Stock' : 'In Stock: ' + stockCount}
                 </p>
             </div>
-            <div class="card-actions">
-                <button class="edit-btn">✏️ Edit</button>
-                <button class="delete-btn">🗑️ Delete</button>
-                
+            <div class="card-actions" style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%;">
+                <div class="admin-btns-row" style="display: flex; gap: 15px; justify-content: center; align-items: center; width: 100%;">
+                    <button class="edit-btn">✏️ Edit</button>
+                    <button class="delete-btn">🗑️ Delete</button>
+                </div>
+                ${!isOutOfStock ? `
                 <div class="cart-controls-wrapper" style="width: 100%; margin-top: 10px;">
-                    <button class="add-to-cart-btn" style="${(isOutOfStock || quantityInCart > 0) ? 'display:none;' : 'display:block; width:100%;'}">
+                    <button class="add-to-cart-btn" style="${(quantityInCart > 0) ? 'display:none;' : 'display:block; width:100%;'}">
                         🛒 Add to Cart
                     </button>
-                    
-                    <div class="noon-qty-selector" style="${(quantityInCart > 0 && !isOutOfStock) ? 'display:flex;' : 'display:none;'} align-items: center; justify-content: space-between; border: 2px solid #007bff; border-radius: 50px; padding: 4px 12px; background: #fff;">
+                    <div class="noon-qty-selector" style="${(quantityInCart > 0) ? 'display:flex;' : 'display:none;'} align-items: center; justify-content: space-between; border: 2px solid #007bff; border-radius: 50px; padding: 4px 12px; background: #fff;">
                         <button class="minus-btn" style="background:none; border:none; color:#007bff; font-size:20px; cursor:pointer; font-weight:bold;">−</button>
                         <span class="qty-display" style="font-weight:bold; font-size:15px; color:#333;">x${quantityInCart}</span>
                         <button class="plus-btn" style="background:none; border:none; color:#007bff; font-size:20px; cursor:pointer; font-weight:bold;">+</button>
                     </div>
-
-                    ${isOutOfStock ? '<button disabled style="width:100%; background:#ccc; cursor:not-allowed; border:none; padding:8px; border-radius:5px;">Out of Stock</button>' : ''}
                 </div>
+                ` : ''}
             </div>
         `;
 
@@ -490,15 +490,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (addBtn) {
             addBtn.addEventListener("click", async () => {
-                const stockLimit = parseInt(card.dataset.stock) || 0;
-
-                // 🛑 CHECK STOCK FIRST
-                if (stockLimit <= 0) {
-                    showToast("Sorry, this item is out of stock!");
-                    return;
-                }
-
+                // Check if user is logged in
                 const {data: {user}} = await supabaseClient.auth.getUser();
+
                 if (!user) {
                     showToast("Please login to start shopping! 🛍️");
                     setTimeout(() => {
@@ -507,11 +501,21 @@ document.addEventListener("DOMContentLoaded", () => {
                     return;
                 }
 
+                // 1. Logic: Add to the actual cart
+                if (window.addToCart) {
+                    window.addToCart(product.name, product.price, product.image_url, product.id);
+                }
+
+                // 2. UI: Change the button to the quantity selector
                 addBtn.style.display = "none";
                 qtySelector.style.display = "flex";
                 qtyDisplay.textContent = "x1";
-                if (window.addToCart) {
-                    window.addToCart(productName, productPrice, productImage, productId);
+
+                // 3. 🔥 THE FIX: Tell the cart to refresh the "0" to "1" in the header
+                if (typeof updateCartCount === 'function') {
+                    updateCartCount();
+                } else if (typeof renderCart === 'function') {
+                    renderCart();
                 }
             });
         }
@@ -560,9 +564,6 @@ document.addEventListener("DOMContentLoaded", () => {
         const idToDelete = cardToDelete.dataset.id;
         const imageUrl = cardToDelete.querySelector('img').src;
 
-        cardToDelete.remove();
-        deletePopup.style.display = "none";
-
         if (idToDelete) {
             const {error: dbError} = await supabaseClient
                 .from("products")
@@ -571,8 +572,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (dbError) {
                 console.error("❌ Error deleting from DB:", dbError);
-                return;
+                // 🛑 FIX: Check for the Foreign Key constraint error (code 23502)
+                if (dbError.code === '23502') {
+                    showToast("Cannot delete: This product is linked to existing orders! 📦");
+                } else {
+                    showToast("Delete failed. Check console for details.");
+                }
+                deletePopup.style.display = "none";
+                return; // Stop here so the card is NOT removed from the UI
             }
+
+            // Only remove from UI if the database deletion was successful
+            cardToDelete.remove();
+            deletePopup.style.display = "none";
 
             if (imageUrl && imageUrl.includes("supabase")) {
                 const filePath = imageUrl.split('/').pop();
@@ -583,6 +595,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 if (storageError) console.error("⚠️ Could not delete image file:", storageError);
             }
+        } else {
+            // Fallback for temporary/unsaved cards
+            cardToDelete.remove();
+            deletePopup.style.display = "none";
         }
     });
 
@@ -862,3 +878,4 @@ document.addEventListener("DOMContentLoaded", () => {
 
     console.log("🚀 Script fully loaded at high line count with Noon UI and Auth Guard!");
 });
+
