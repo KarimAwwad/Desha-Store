@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Create Account</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-register">
+<div class="page">
+    <div class="reg-card">
+        <p class="welcome">Welcome to</p>
+        <h2 class="reg-logo">Desha store</h2>
+        <h3 class="title">Start creating an account for free</h3>
+        <form id="registerForm" class="reg-form">
+            <input type="text" id="regName" placeholder="Full name" required>
+            <input type="email" id="regEmail" placeholder="Email" required>
+            <input type="tel" id="regPhone" placeholder="Phone number" required>
+            <input type="text" id="regAddress" placeholder="Full Address (Street, City, Zip)" required>
+            <input type="password" id="regPassword" placeholder="Password" required>
+            <input type="password" id="regConfirmPassword" placeholder="Confirm password" required>
+            <div class="actions">
+                <button type="submit" id="submitBtn" class="reg-btn">Create account</button>
+                <a href="index_login.html" class="login">Have an account?</a>
+            </div>
+        </form>
+        <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+        <script src="supabase.js"></script>
+        <script src="register.js"></script>
+    </div>
+</div>
+<div id="successModal" class="custom-modal">
+    <div class="modal-content">
+        <div class="success-icon">🎉</div>
+        <h2>Welcome to Desha Store!</h2>
+        <p>Your account has been created successfully.</p>
+        <div class="email-notice">
+            <p>Enjoy Shopping In Our Store If You Have Any Feedback Feel Free To Email Us ❤️</p>
+        </div>
+        <button id="modalCloseBtn" class="modal-btn">Continue to Login</button>
+    </div>
+</div>
+</body>
+</html>

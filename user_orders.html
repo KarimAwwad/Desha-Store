@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Orders - Desha Store</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Montserrat:wght@300;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-soft">
+
+<header class="site-header">
+    <div class="container">
+        <div class="logo">
+            <img src="https://cdn-icons-png.flaticon.com/512/891/891462.png" alt="Logo">
+            <h1>Desha <span>Store</span></h1>
+        </div>
+        <nav class="nav-links">
+            <a href="index_products.html">Home</a>
+            <a href="#" class="active">My Orders</a>
+        </nav>
+    </div>
+</header>
+
+<main>
+    <div class="my-orders-container">
+        <div class="page-header">
+            <h1>🛍️ My Order History</h1>
+            <p>Track your past purchases and current status.</p>
+        </div>
+
+        <div class="table-responsive">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Product</th>
+                        <th>Quantity</th>
+                        <th>Total Price</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="myOrdersTableBody">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase.js"></script>
+<script src="user_orders.js"></script>
+
+</body>
+</html>

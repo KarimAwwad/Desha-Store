@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <title>Desha Store</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Montserrat:wght@300;500&display=swap"
+          rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-soft">
+
+<header class="site-header">
+    <div class="container">
+        <div class="logo">
+            <img src="https://cdn-icons-png.flaticon.com/512/891/891462.png" alt="Desha Store Logo">
+            <h1>Desha <span>Store</span></h1>
+        </div>
+
+        <div id="auth-ui-container" class="auth-ui-flex">
+            <div id="cartWrapper" style="display: none;">
+                <div id="cart-trigger" class="cart-icon-wrapper">
+                    <img src="https://cdn-icons-png.flaticon.com/512/1170/1170678.png" alt="Cart" class="cart-icon-img">
+                    <span id="cart-count" class="cart-badge">0</span>
+                </div>
+            </div>
+
+            <div class="auth-buttons-login">
+                <a href="index_login.html" class="button-class">Login</a>
+            </div>
+            <div class="auth-buttons-register">
+                <a href="index_register.html" class="button-class">Register</a>
+            </div>
+            <div id="admin-zone" style="display: none;">
+                <a href="index_admin_orders_dashboard.html" class="button-class admin-dashboard-btn">Admin Orders
+                    Dashboard</a>
+            </div>
+            <div id="user-profile-menu" class="user-menu" style="display: none;">
+                <img src="https://cdn-icons-png.flaticon.com/512/1144/1144760.png" class="profile-icon" id="userIcon"
+                     alt="Profile">
+                <div class="dropdown-content" id="dropdownMenu">
+                    <a href="user_orders.html" id="userOrdersLink" class="logout-link"
+                       style="text-decoration:none; display:block; color:#333;">📦 My Orders</a>
+                    <hr style="margin:0; border:0; border-top:1px solid #eee;">
+                    <button id="logoutBtn" class="logout-link">Log Out</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="category-buttons">
+            <button class="filter-btn active" data-category="all">🏠 Home</button>
+            <button class="filter-btn" data-category="men">👔 Men</button>
+            <button class="filter-btn" data-category="women">👗 Women</button>
+            <button class="filter-btn" data-category="children">🧒 Children</button>
+        </div>
+    </div>
+</header>
+
+<h1 class="hero-title" id="pageTitle">Men Collection</h1>
+
+<main class="products-container">
+    <section class="category-section" id="menSection">
+        <h2 class="collection-title">Men Collection</h2>
+        <section class="grid" id="menGrid">
+            <div class="upload-area" id="uploadTrigger-men">
+                <p>Click to upload your product</p>
+            </div>
+        </section>
+    </section>
+
+    <section class="category-section" id="womenSection" style="display: none;">
+        <h2 class="collection-title">Women Collection</h2>
+        <section class="grid" id="womenGrid">
+            <div class="upload-area" id="uploadTrigger-women">
+                <p>Click to upload your product</p>
+            </div>
+        </section>
+    </section>
+
+    <section class="category-section" id="childrenSection" style="display: none;">
+        <h2 class="collection-title">Children Collection</h2>
+        <section class="grid" id="childrenGrid">
+            <div class="upload-area" id="uploadTrigger-children">
+                <p>Click to upload your product</p>
+            </div>
+        </section>
+    </section>
+</main>
+
+<div id="uploadPopup" class="popup-overlay">
+    <div class="popup-content">
+        <span class="close-btn">&times;</span>
+        <h2 id="popupTitle">Add New Product</h2>
+        <div class="image-upload-box" id="imageUploadBox">
+            <p id="uploadText">Click to upload image</p>
+            <img id="imagePreview" alt="Preview">
+            <input type="file" id="productImage" accept="image/*" style="display:none;">
+        </div>
+        <form id="productForm">
+            <label>Product Name:</label>
+            <input type="text" id="productName" placeholder="Enter product name" required>
+
+            <label>Product Price:</label>
+            <input type="number" id="productPrice" placeholder="Enter price" required>
+            <label>Stock Quantity:</label>
+            <input type="number" id="productStock" placeholder="Ex: 10" required min="0">
+            <div class="toggle-container">
+                <span>Tag:</span>
+                <label class="switch">
+                    <input type="checkbox" id="productTag">
+                    <span class="slider round"></span>
+                </label>
+                <span id="tagLabel">NEW</span>
+            </div>
+
+            <label>Product Category:</label>
+            <select id="productCategory" required>
+                <option value="men">Men</option>
+                <option value="women">Women</option>
+                <option value="children">Children</option>
+            </select>
+
+            <button type="submit">Add Product</button>
+        </form>
+    </div>
+</div>
+
+<footer class="site-footer">
+    <div class="footer-container">
+        <div class="footer-info">
+            <h2>Desha <span>Store</span></h2>
+            <p>أفضل متجر للإكسسوارات العنايةو بأناقتك</p>
+        </div>
+        <div class="footer-contact">
+            <p><strong>📞 واتساب:</strong> <a href="https://wa.me/201234567890" target="_blank">+20 123 456 7890</a></p>
+            <p><strong>📧 البريد:</strong> <a href="mailto:contact@deshastore.com">contact@deshastore.com</a></p>
+        </div>
+    </div>
+    <div class="footer-bottom">
+        <p>© 2025 Desha Store. All rights reserved.</p>
+    </div>
+</footer>
+
+<div id="deletePopup">
+    <div class="confirm-box">
+        <h2>Are you sure you want to delete this product?</h2>
+        <div class="confirm-buttons">
+            <button id="confirmDelete">Yes, delete</button>
+            <button id="cancelDelete">Cancel</button>
+        </div>
+    </div>
+</div>
+<div id="cartSidebar" class="cart-sidebar">
+    <div class="cart-header">
+        <h2>Your Cart 🛍️</h2>
+        <span id="closeCart" class="close-cart-btn">&times;</span>
+    </div>
+
+    <div id="cartItemsContainer" class="cart-items-list">
+    </div>
+    <div class="cart-footer">
+        <div class="total-section">
+            <span>Total:</span>
+            <span id="cartTotalValue">0.00 EGP</span>
+        </div>
+        <button id="checkoutBtn" class="checkout-now-btn">Checkout</button>
+    </div>
+</div>
+<div id="cartOverlay" class="cart-overlay"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase.js"></script>
+<script src="script.js"></script>
+<script src="cart.js"></script>
+</body>
+</html>

@@ -1,0 +1,648 @@
+document.addEventListener("DOMContentLoaded", () => {
+    console.log("✅ script.js loaded successfully, bestie!");
+
+    /* --------------------------
+       VARIABLE SETUP
+    -------------------------- */
+    const uploadPopup = document.getElementById("uploadPopup");
+    const closeBtn = document.querySelector(".close-btn");
+    const form = document.getElementById("productForm");
+    const tagSwitch = document.getElementById("productTag");
+    const tagLabel = document.getElementById("tagLabel");
+    const categorySelect = document.getElementById("productCategory");
+    const popupTitle = document.getElementById("popupTitle");
+
+    const productImageInput = document.getElementById("productImage");
+    const imagePreview = document.getElementById("imagePreview");
+    const uploadText = document.getElementById("uploadText");
+    const imageUploadBox = document.getElementById("imageUploadBox");
+
+    const deletePopup = document.getElementById("deletePopup");
+    const confirmDeleteBtn = document.getElementById("confirmDelete");
+    const cancelDeleteBtn = document.getElementById("cancelDelete");
+
+    // 🔥 LOCK THE TAG BUTTON (READ-ONLY)
+    tagSwitch.checked = true;
+    tagSwitch.disabled = true;
+    tagSwitch.style.cursor = "not-allowed";
+    tagLabel.textContent = "SALE";
+
+    // State Variables
+    let currentGrid = null;
+    let editMode = false;
+    let editingCard = null;
+    let storedImageSrc = null;
+    let rawFile = null;
+    let cardToDelete = null;
+
+    /* --------------------------
+       📉 COMPRESSION ENGINE
+    -------------------------- */
+
+    // This function shrinks 3MB images to ~200KB instantly
+    function compressImage(file) {
+        return new Promise((resolve) => {
+            const maxWidth = 800; // Max width in pixels (Amazon standard for lists)
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (event) => {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = () => {
+                    const elem = document.createElement('canvas');
+                    const scaleFactor = maxWidth / img.width;
+
+                    const finalWidth = img.width > maxWidth ? maxWidth : img.width;
+                    const finalHeight = img.width > maxWidth ? img.height * scaleFactor : img.height;
+
+                    elem.width = finalWidth;
+                    elem.height = finalHeight;
+
+                    const ctx = elem.getContext('2d');
+                    ctx.drawImage(img, 0, 0, finalWidth, finalHeight);
+
+                    ctx.canvas.toBlob((blob) => {
+                        const compressedFile = new File([blob], file.name, {
+                            type: 'image/jpeg',
+                            lastModified: Date.now(),
+                        });
+                        resolve(compressedFile);
+                    }, 'image/jpeg', 0.8);
+                };
+            };
+        });
+    }
+
+    /* --------------------------
+       🔌 SUPABASE HELPERS
+    -------------------------- */
+
+    async function uploadImageToSupabase(file) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}.${fileExt}`;
+        const filePath = `${fileName}`;
+
+        const {data, error} = await supabaseClient
+            .storage
+            .from('product-images')
+            .upload(filePath, file, {
+                cacheControl: '3600',
+                upsert: false
+            });
+
+        if (error) {
+            console.error("Upload error:", error);
+            return null;
+        }
+
+        const {data: {publicUrl}} = supabaseClient
+            .storage
+            .from('product-images')
+            .getPublicUrl(filePath);
+
+        return publicUrl;
+    }
+
+    async function saveProductToSupabase(product) {
+        const {data, error} = await supabaseClient
+            .from("products")
+            .insert([product])
+            .select()
+            .single();
+
+        if (error) {
+            console.error("❌ Supabase insert error:", error);
+            return null;
+        }
+        return data;
+    }
+
+    /* --------------------------
+       ⚡ UI CREATION
+    -------------------------- */
+    function createProductCard(product, isTemp = false) {
+        const isSale = true;
+        let showNewTag = false;
+        let diffInSeconds = 0;
+        const sevenDaysInSeconds = 7 * 24 * 60 * 60;
+        if (isTemp || !product.created_at) {
+            showNewTag = true;
+        } else {
+            const createdDate = new Date(product.created_at);
+            const now = new Date();
+            diffInSeconds = (now - createdDate) / 1000;
+            if (diffInSeconds < sevenDaysInSeconds) {
+                showNewTag = true;
+            }
+        }
+        const tagHTML = `
+            <div class="tags">
+                ${showNewTag ? '<div class="tag new-tag">NEW</div>' : ""}
+                <div class="tag sale">SALE</div>
+            </div>
+        `;
+
+        // 🆕 NEW: STOCK LOGIC FOR VISUAL OVERLAY
+        const stockCount = product.stock_quantity !== undefined ? product.stock_quantity : 1;
+        const isOutOfStock = !isTemp && stockCount <= 0;
+
+        const card = document.createElement("article");
+        card.classList.add("card");
+        if (isTemp) card.classList.add("optimistic");
+
+        if (product.id) {
+            card.dataset.id = product.id;
+        }
+
+        card.dataset.category = product.category;
+        // 🆕 Store stock value in the card itself for editing later
+        card.dataset.stock = stockCount;
+
+        card.innerHTML = `
+            <div class="img-wrap">
+                <img src="${product.image_url}" alt="${product.name}" loading="lazy" style="${isOutOfStock ? 'filter: grayscale(1); opacity: 0.6;' : ''}">
+                ${tagHTML}
+                ${isOutOfStock ? '<div class="out-of-stock-badge" style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(0,0,0,0.8); color:white; padding:10px; border-radius:5px; font-weight:bold; z-index:10;">SOLD OUT</div>' : ''}
+            </div>
+            <div class="meta">
+                <p class="price">${product.price} L.E</p>
+                <p class="product-name">${product.name}</p>
+                <p class="stock-info" style="font-size: 11px; color: ${isOutOfStock ? 'red' : '#888'}; margin-top: 4px;">${isOutOfStock ? 'Currently Out of Stock' : 'In Stock: ' + stockCount}</p>
+            </div>
+            <div class="card-actions">
+                <button class="edit-btn">✏️ Edit</button>
+                <button class="delete-btn">🗑️ Delete</button>
+                <button class="add-to-cart-btn" ${isOutOfStock ? 'disabled style="background:#ccc; cursor:not-allowed;"' : ''}>
+                    ${isOutOfStock ? 'Out of Stock' : '🛒 Add to Cart'}
+                </button>
+            </div>
+        `;
+
+        if (showNewTag) {
+            const remainingTimeMs = Math.max(0, (sevenDaysInSeconds - diffInSeconds) * 1000);
+            setTimeout(() => {
+                const tag = card.querySelector(".new-tag");
+                if (tag) {
+                    tag.style.opacity = "0";
+                    tag.style.transition = "opacity 0.5s ease";
+                    setTimeout(() => tag.remove(), 500);
+                }
+            }, remainingTimeMs);
+        }
+
+        attachCardListeners(card);
+        return card;
+    }
+
+    function insertCardIntoGrid(card, category) {
+        const grid = document.querySelector(`#${category}Grid`);
+        if (grid) {
+            const uploadArea = grid.querySelector(".upload-area");
+            grid.insertBefore(card, uploadArea);
+        }
+    }
+
+    /* --------------------------
+       🖼️ IMAGE PREVIEW
+    -------------------------- */
+    tagSwitch.addEventListener("change", () => {
+        tagLabel.textContent = tagSwitch.checked ? "SALE" : "NEW";
+    });
+
+    imageUploadBox.addEventListener("click", () => productImageInput.click());
+
+    productImageInput.addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        rawFile = file;
+
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+            imagePreview.src = evt.target.result;
+            imagePreview.style.display = "block";
+            uploadText.style.display = "none";
+            storedImageSrc = evt.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+
+    /* --------------------------
+       📦 POPUP LOGIC
+    -------------------------- */
+    document.querySelectorAll(".upload-area").forEach(trigger => {
+        trigger.addEventListener("click", () => {
+            uploadPopup.style.display = "flex";
+            currentGrid = trigger.closest(".grid");
+
+            editMode = false;
+            editingCard = null;
+            storedImageSrc = null;
+            rawFile = null;
+
+            form.reset();
+
+            // 🆕 Set default stock to 10 when opening add modal
+            const stockInput = document.getElementById("productStock");
+            if (stockInput) stockInput.value = 10;
+
+            tagSwitch.checked = true;
+            tagLabel.textContent = "SALE";
+
+            imagePreview.style.display = "none";
+            uploadText.style.display = "block";
+
+            popupTitle.textContent = "Add New Product";
+            form.querySelector("button[type='submit']").textContent = "Add Product";
+
+            if (currentGrid.id.includes("men")) categorySelect.value = "men";
+            if (currentGrid.id.includes("women")) categorySelect.value = "women";
+            if (currentGrid.id.includes("children")) categorySelect.value = "children";
+        });
+    });
+
+    closeBtn.addEventListener("click", () => uploadPopup.style.display = "none");
+
+    /* --------------------------
+       💾 THE "SNAPPY" SAVE
+    -------------------------- */
+    /* --------------------------
+           💾 THE "SNAPPY" SAVE (UPDATED TO MOVE CATEGORIES)
+        -------------------------- */
+    form.addEventListener("submit", (e) => {
+        e.preventDefault();
+
+        const name = document.getElementById("productName").value.trim();
+        const price = document.getElementById("productPrice").value.trim();
+        // 🆕 Capture Stock Value from form
+        const stock = document.getElementById("productStock") ? document.getElementById("productStock").value : 10;
+        const category = categorySelect.value;
+        const productId = editMode && editingCard ? editingCard.dataset.id : null;
+
+        if (!name || !price || (!storedImageSrc && !editMode)) {
+            alert("Please fill all fields, bestie!");
+            return;
+        }
+
+        // Capture the OLD category before we update
+        const oldCategory = editMode && editingCard ? editingCard.dataset.category : null;
+
+        const productData = {
+            id: productId,
+            name,
+            price,
+            category,
+            tag: "SALE",
+            image_url: storedImageSrc,
+            stock_quantity: parseInt(stock)
+        };
+
+        let activeCard;
+        if (editMode && editingCard) {
+            const newCard = createProductCard(productData);
+
+            // 🔥 LOGIC CHANGE: Check if category changed
+            if (oldCategory !== category) {
+                editingCard.remove(); // Remove from old section
+                insertCardIntoGrid(newCard, category); // Move to new section
+            } else {
+                editingCard.replaceWith(newCard); // Stay in same section
+            }
+            activeCard = newCard;
+        } else {
+            activeCard = createProductCard(productData, true);
+            insertCardIntoGrid(activeCard, category);
+        }
+
+        uploadPopup.style.display = "none";
+        form.reset();
+
+        (async () => {
+            let finalImageUrl = storedImageSrc;
+
+            if (rawFile) {
+                const compressedFile = await compressImage(rawFile);
+                const publicUrl = await uploadImageToSupabase(compressedFile);
+                if (publicUrl) finalImageUrl = publicUrl;
+            }
+
+            const dbProduct = {
+                name,
+                price,
+                category,
+                tag: "SALE",
+                image_url: finalImageUrl,
+                stock_quantity: parseInt(stock)
+            };
+
+            let saved;
+            if (editMode && productId) {
+                const {data, error} = await supabaseClient
+                    .from("products")
+                    .update(dbProduct)
+                    .eq("id", productId)
+                    .select()
+                    .single();
+
+                if (error) console.error("❌ Supabase Update Error:", error);
+                saved = data;
+            } else {
+                saved = await saveProductToSupabase(dbProduct);
+            }
+
+            if (!saved) {
+                if (!editMode) activeCard.remove();
+                alert("❌ Sync failed. Check console.");
+                return;
+            }
+
+            activeCard.classList.remove("optimistic");
+            activeCard.dataset.id = saved.id;
+            activeCard.dataset.stock = saved.stock_quantity;
+            activeCard.querySelector('img').src = saved.image_url;
+            console.log("✅ Supabase Sync Complete!");
+        })();
+    });
+
+    /* --------------------------
+       ✏️ Edit & Delete
+    -------------------------- */
+    function attachCardListeners(card) {
+        card.querySelector(".edit-btn").addEventListener("click", () => {
+            document.getElementById("productName").value = card.querySelector(".product-name").textContent;
+
+            // 🔥 FIXED: Populates the price field by removing " L.E" and any extra whitespace
+            document.getElementById("productPrice").value = card.querySelector(".price").textContent.replace("L.E", "").trim();
+
+            // 🆕 Populate stock input in the edit popup
+            const stockInput = document.getElementById("productStock");
+            if (stockInput) stockInput.value = card.dataset.stock || 0;
+
+            categorySelect.value = card.dataset.category;
+
+            tagSwitch.checked = true;
+            tagLabel.textContent = "SALE";
+
+            const img = card.querySelector("img");
+            imagePreview.src = img.src;
+            imagePreview.style.display = "block";
+            uploadText.style.display = "none";
+            storedImageSrc = img.src;
+            rawFile = null;
+
+            editMode = true;
+            editingCard = card;
+            popupTitle.textContent = "Editing Product...";
+            form.querySelector("button[type='submit']").textContent = "Update Product";
+
+            uploadPopup.style.display = "flex";
+        });
+
+        card.querySelector(".delete-btn").addEventListener("click", () => {
+            cardToDelete = card;
+            deletePopup.style.display = "flex";
+        });
+
+        // 🛒 Add to Cart Listener (NOW LINKED TO CART.JS)
+        card.querySelector(".add-to-cart-btn").addEventListener("click", () => {
+            const productName = card.querySelector(".product-name").textContent;
+            const productPrice = card.querySelector(".price").textContent.replace("L.E", "").trim();
+            const productImage = card.querySelector("img").src;
+            // 🔥 ADD THIS LINE: Get the ID we stored in the dataset
+            const productId = card.dataset.id;
+            // This calls the function in your cart.js file
+            if (window.addToCart) {
+                // 🔥 UPDATE THIS LINE: Add productId as the 4th argument
+                window.addToCart(productName, productPrice, productImage, productId);
+            } else {
+                console.error("Cart logic not loaded yet!");
+            }
+        });
+    }
+
+    cancelDeleteBtn.addEventListener("click", () => {
+        deletePopup.style.display = "none";
+        cardToDelete = null;
+    });
+
+    confirmDeleteBtn.addEventListener("click", async () => {
+        if (!cardToDelete) return;
+
+        const idToDelete = cardToDelete.dataset.id;
+        const imageUrl = cardToDelete.querySelector('img').src;
+
+        cardToDelete.remove();
+        deletePopup.style.display = "none";
+
+        if (idToDelete) {
+            const {error: dbError} = await supabaseClient
+                .from("products")
+                .delete()
+                .eq("id", idToDelete);
+
+            if (dbError) {
+                console.error("❌ Error deleting from DB:", dbError);
+                return;
+            }
+
+            if (imageUrl && imageUrl.includes("supabase")) {
+                const filePath = imageUrl.split('/').pop();
+                const {error: storageError} = await supabaseClient
+                    .storage
+                    .from('product-images')
+                    .remove([filePath]);
+
+                if (storageError) console.error("⚠️ Could not delete image file:", storageError);
+            }
+        }
+    });
+
+    /* --------------------------
+       🧩 Filters & Init
+    -------------------------- */
+    document.querySelectorAll(".filter-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+            document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+
+            const category = btn.dataset.category;
+            const pageTitle = document.getElementById("pageTitle");
+            const subHeadings = document.querySelectorAll(".collection-title");
+
+            if (category === "all") {
+                pageTitle.textContent = "Home Collection";
+                subHeadings.forEach(h2 => h2.style.display = "block");
+            } else {
+                pageTitle.textContent = category.charAt(0).toUpperCase() + category.slice(1) + " Collection";
+                subHeadings.forEach(h2 => h2.style.display = "none");
+            }
+
+            document.querySelectorAll(".category-section").forEach(section => {
+                const sectionId = section.id.replace("Section", "").toLowerCase();
+                const isMatch = category === "all" || category === sectionId;
+                section.style.display = isMatch ? "block" : "none";
+            });
+        });
+    });
+
+    (async () => {
+        const skeletons = [];
+        document.querySelectorAll(".grid").forEach(grid => {
+            for (let i = 0; i < 3; i++) {
+                const skel = document.createElement("div");
+                skel.className = "card skeleton";
+                grid.insertBefore(skel, grid.querySelector(".upload-area"));
+                skeletons.push(skel);
+            }
+        });
+
+        const {data} = await supabaseClient
+            .from("products")
+            .select("*")
+            .order("created_at", {ascending: false});
+
+        skeletons.forEach(s => s.remove());
+        if (data) {
+            data.forEach(p => insertCardIntoGrid(createProductCard(p), p.category));
+        }
+    })();
+
+    document.querySelector('.filter-btn[data-category="all"]').click();
+
+    const footerEl = document.querySelector(".footer-info p");
+    if (footerEl) {
+        const words = footerEl.textContent.trim().split(" ");
+        footerEl.textContent = words.reverse().join(" ");
+    }
+
+    /* --------------------------
+       👤 USER AUTH UI & ADMIN LOCK
+    -------------------------- */
+
+    // 🆕 UPDATED: Function to handle Header Icons & Logout Dropdown
+    async function updateAuthUI() {
+        const loginBtn = document.querySelector('.auth-buttons-login');
+        const registerBtn = document.querySelector('.auth-buttons-register');
+        const profileMenu = document.getElementById('user-profile-menu');
+        const logoutBtn = document.getElementById('logoutBtn');
+
+        // 🔥 FIXED: Using getElementById to match your HTML id="cartWrapper"
+        const cartWrapper = document.getElementById('cartWrapper');
+
+        const {data: {user}} = await supabaseClient.auth.getUser();
+
+        if (user) {
+            // User is logged in: Hide buttons, show profile icon
+            if (loginBtn) loginBtn.style.display = 'none';
+            if (registerBtn) registerBtn.style.display = 'none';
+            if (profileMenu) profileMenu.style.display = 'block';
+
+            // 🔥 FIXED: Overriding the inline "display: none" from your HTML
+            if (cartWrapper) cartWrapper.style.display = 'block';
+
+            // Toggle dropdown logic
+            profileMenu.addEventListener('click', (e) => {
+                e.stopPropagation();
+                profileMenu.classList.toggle('active');
+            });
+
+            // Close dropdown if clicking elsewhere
+            document.addEventListener('click', () => {
+                profileMenu.classList.remove('active');
+            });
+
+            // Handle Logout
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', async () => {
+                    const {error} = await supabaseClient.auth.signOut();
+                    if (!error) {
+                        window.location.reload();
+                    }
+                });
+            }
+        } else {
+            // Guest mode: Show login/register
+            if (loginBtn) loginBtn.style.display = 'block';
+            if (registerBtn) registerBtn.style.display = 'block';
+            if (profileMenu) profileMenu.style.display = 'none';
+
+            // Hide cart for guests
+            if (cartWrapper) cartWrapper.style.display = 'none';
+        }
+    }
+
+    async function applyAdminLock() {
+        const {data: {user}} = await supabaseClient.auth.getUser();
+        let isAdmin = false;
+
+        if (user) {
+            const {data: profile} = await supabaseClient
+                .from('user_profiles')
+                .select('is_admin')
+                .eq('id', user.id)
+                .single();
+
+            if (profile && profile.is_admin) {
+                isAdmin = true;
+            }
+        }
+
+        const adminZone = document.getElementById('admin-zone');
+        const cartWrapper = document.getElementById('cartWrapper');
+        const uploadAreas = document.querySelectorAll('.upload-area');
+
+        // 🔥 Targeting the specific ID we just added
+        const userOrdersLink = document.getElementById('userOrdersLink');
+
+        if (!isAdmin) {
+            console.log("👤 User/Guest detected.");
+            if (adminZone) adminZone.style.display = 'none';
+
+            // Show My Orders for users
+            if (userOrdersLink) userOrdersLink.style.display = 'block';
+
+            uploadAreas.forEach(area => {
+                area.style.setProperty('display', 'none', 'important');
+            });
+
+            const style = document.createElement('style');
+            style.id = "admin-lock-style";
+            style.innerHTML = `.edit-btn, .delete-btn, .upload-area { display: none !important; }`;
+            document.head.appendChild(style);
+        } else {
+            console.log("👑 Admin detected.");
+
+            if (adminZone) {
+                adminZone.style.display = 'block';
+                const dashBtn = adminZone.querySelector('a');
+                if (dashBtn) dashBtn.setAttribute('href', 'index_admin_orders_dashboard.html');
+            }
+
+            if (cartWrapper) cartWrapper.style.display = 'none';
+
+            // 🔥 FORCE HIDE for Admin
+            if (userOrdersLink) {
+                userOrdersLink.setAttribute('style', 'display: none !important');
+
+                // Hide the separator line (hr) if it exists right after the link
+                const hr = userOrdersLink.nextElementSibling;
+                if (hr && hr.tagName === 'HR') {
+                    hr.style.setProperty('display', 'none', 'important');
+                }
+            }
+
+            uploadAreas.forEach(area => {
+                area.style.setProperty('display', 'flex', 'important');
+            });
+
+            const style = document.createElement('style');
+            style.id = "admin-cart-lock";
+            style.innerHTML = `.add-to-cart-btn { display: none !important; }`;
+            document.head.appendChild(style);
+        }
+    }
+
+    // Initialize UI and Lock
+    updateAuthUI();
+    applyAdminLock();
+});

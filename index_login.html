@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <title>Login Form Desha</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-hero">
+<main class="login-page">
+    <h1 class="page-title">ONLINE LOGIN FORM</h1>
+    <div class="login-panel" role="form" aria-label="login form">
+        <h2 class="panel-heading">LOGIN QUICK</h2>
+        <form id="loginForm" class="login-form" autocomplete="on">
+            <label class="input-wrap">
+                <input type="email" id="loginEmail" name="email" required placeholder="E-mail">
+                <span class="icon">👤</span>
+            </label>
+            <label class="input-wrap">
+                <input type="password" id="loginPassword" name="password" required placeholder="Password">
+                <span class="icon">🔒</span>
+            </label>
+            <div class="forgot-row">
+                <a href="#" class="forgot">Forgot Password?</a>
+            </div>
+            <button id="loginBtn" class="btn primary" type="submit">Login</button>
+        </form>
+        <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+        <script src="supabase.js"></script>
+        <script src="login.js"></script>
+    </div>
+</main>
+</body>
+</html>
