@@ -126,21 +126,33 @@ document.addEventListener("DOMContentLoaded", () => {
     // --- 3. Global Functions (Called by script.js) ---
     // Added 'id' parameter to match your products(id) reference
     window.addToCart = (name, price, image, id) => {
-        // 🔥 SAFETY GUARD: Find how many of this ID are already in the cart array
-        const currentInCart = cart.filter(item => item.id === id).length;
+        // 1. Get the latest cart data from localStorage (standard for multi-page sites)
+        let cart = JSON.parse(localStorage.getItem('cart')) || [];
 
-        // Find the product card on the page to get its stock value from dataset
+        // 2. SAFETY GUARD: Check stock
+        const currentInCart = cart.filter(item => item.id === id).length;
         const card = document.querySelector(`.card[data-id="${id}"]`);
         const stockLimit = card ? parseInt(card.dataset.stock) : 999;
 
-        // Only push to cart if we haven't reached the limit
         if (currentInCart < stockLimit) {
+            // 3. Add item to array
             cart.push({name, price, image, id});
-            renderCart();
-            console.log(`✅ Added ${name} to cart. Current qty: ${currentInCart + 1}`);
+
+            // 4. 🔥 CRITICAL: Save back to localStorage so the Cart Badge sees it
+            localStorage.setItem('cart', JSON.stringify(cart));
+
+            // 5. Run your existing render function
+            if (typeof renderCart === 'function') renderCart();
+
+            // 6. 🔥 UPDATE THE HEADER COUNT (The 0 to 1 fix)
+            const cartBadge = document.getElementById('cart-count'); // Or whatever your ID is
+            if (cartBadge) {
+                cartBadge.textContent = cart.length;
+            }
+
+            console.log(`✅ Added ${name}. Total items in cart: ${cart.length}`);
         } else {
             console.warn("⚠️ Stock limit reached for ID:", id);
-            // The script.js handles the polished toast, this is the internal safety net.
         }
     };
 
