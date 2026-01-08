@@ -490,34 +490,32 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (addBtn) {
             addBtn.addEventListener("click", async () => {
-                // Check if user is logged in
-                const {data: {user}} = await supabaseClient.auth.getUser();
+                // 🛑 Prevent multiple clicks
+                if (addBtn.disabled) return;
 
-                if (!user) {
-                    showToast("Please login to start shopping! 🛍️");
-                    setTimeout(() => {
-                        window.location.href = "index_login.html";
-                    }, 1500);
-                    return;
-                }
+                // 1. Show Loading State
+                addBtn.disabled = true;
+                addBtn.innerHTML = `<span class="spinner-small"></span> Adding...`;
 
-                // 1. Logic: Add the item to the cart array/localStorage
+                // 2. Artificial delay for "Premium" feel
+                await new Promise(resolve => setTimeout(resolve, 800));
+
+                // 3. Add to Cart (Calling the global function in cart.js)
                 if (window.addToCart) {
-                    window.addToCart(product.name, product.price, product.image_url, product.id);
+                    // ✅ Use the variables defined above from the card, NOT the undefined 'product' object
+                    window.addToCart(productName, productPrice, productImage, productId);
                 }
 
-                // 2. UI: Show the quantity selector immediately
+                // 4. UI Transition
                 addBtn.style.display = "none";
                 qtySelector.style.display = "flex";
                 qtyDisplay.textContent = "x1";
 
-                // 3. 🔥 THE FIX: Tell the header to update the count from 0 to 1
-                // We call the standard refresh functions used in cart.js
-                if (typeof updateCartCount === 'function') {
-                    updateCartCount();
-                } else if (typeof renderCart === 'function') {
-                    renderCart();
-                }
+                // Reset button for future use
+                addBtn.disabled = false;
+                addBtn.innerHTML = "🛒 Add to Cart";
+
+                if (window.showToast) window.showToast("Added to cart! ✨", false);
             });
         }
 
