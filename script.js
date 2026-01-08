@@ -227,25 +227,27 @@ document.addEventListener("DOMContentLoaded", () => {
                     ${isOutOfStock ? 'Currently Out of Stock' : 'In Stock: ' + stockCount}
                 </p>
             </div>
-             <div class="card-actions" style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                <div style="display: flex; gap: 15px; justify-content: center; width: 100%;">
+            <div class="card-actions" style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%;">
+                <div class="admin-btns-row" style="display: flex; gap: 15px; justify-content: center; align-items: center; width: 100%;">
                     <button class="edit-btn">✏️ Edit</button>
                     <button class="delete-btn">🗑️ Delete</button>
                 </div>
+            
                 ${!isOutOfStock ? `
-                    <div class="cart-controls-wrapper" style="width: 100%; margin-top: 10px;">
-                        <button class="add-to-cart-btn" style="${(quantityInCart > 0) ? 'display:none;' : 'display:block; width:100%;'}">
-                            🛒 Add to Cart
-                        </button>
-                        <div class="noon-qty-selector" style="${(quantityInCart > 0) ? 'display:flex;' : 'display:none;'} align-items: center; justify-content: space-between; border: 2px solid #007bff; border-radius: 50px; padding: 4px 12px; background: #fff;">
-                            <button class="minus-btn" style="background:none; border:none; color:#007bff; font-size:20px; cursor:pointer; font-weight:bold;">−</button>
-                            <span class="qty-display" style="font-weight:bold; font-size:15px; color:#333;">x${quantityInCart}</span>
-                            <button class="plus-btn" style="background:none; border:none; color:#007bff; font-size:20px; cursor:pointer; font-weight:bold;">+</button>
-                        </div>
+                <div class="cart-controls-wrapper" style="width: 100%; margin-top: 10px;">
+                    <button class="add-to-cart-btn" style="${(quantityInCart > 0) ? 'display:none;' : 'display:block; width:100%;'}">
+                        🛒 Add to Cart
+                    </button>
+                    <div class="noon-qty-selector" style="${(quantityInCart > 0) ? 'display:flex;' : 'display:none;'} align-items: center; justify-content: space-between; border: 2px solid #007bff; border-radius: 50px; padding: 4px 12px; background: #fff;">
+                        <button class="minus-btn" style="background:none; border:none; color:#007bff; font-size:20px; cursor:pointer; font-weight:bold;">−</button>
+                        <span class="qty-display" style="font-weight:bold; font-size:15px; color:#333;">x${quantityInCart}</span>
+                        <button class="plus-btn" style="background:none; border:none; color:#007bff; font-size:20px; cursor:pointer; font-weight:bold;">+</button>
                     </div>
+                </div>
                 ` : ''}
             </div>
         `;
+
         if (showNewTag) {
             const remainingTimeMs = Math.max(0, (sevenDaysInSeconds - diffInSeconds) * 1000);
             setTimeout(() => {
