@@ -521,7 +521,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     qtyDisplay.textContent = "x1";
                     if (window.addToCart) {
                         // FIXED: Using variables defined in createProductCard scope
-                        window.addToCart(product.name, product.price, product.image_url, product.id);
+                        window.addToCart(products.name, products.price, products.image_url, products.id);
                     }
                 }, 5000);
             });
