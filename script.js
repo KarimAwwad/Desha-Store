@@ -493,12 +493,21 @@ document.addEventListener("DOMContentLoaded", () => {
                 // 🛑 RACE CONDITION FIX: Immediately disable
                 if (addBtn.disabled) return;
                 addBtn.disabled = true;
+
+                // 🔥 CAPTURE DATA IMMEDIATELY
+                // This prevents the "product is not defined" error after 5 seconds
+                const pName = product.name;
+                const pPrice = product.price;
+                const pImg = product.image_url;
+                const pId = product.id;
                 const stockLimit = parseInt(card.dataset.stock) || 0;
+
                 if (stockLimit <= 0) {
                     showToast("Sorry, this item is out of stock!");
                     addBtn.disabled = false;
                     return;
                 }
+
                 const {data: {user}} = await supabaseClient.auth.getUser();
                 if (!user) {
                     showToast("Please login to start shopping! 🛍️");
@@ -507,21 +516,29 @@ document.addEventListener("DOMContentLoaded", () => {
                     }, 1500);
                     return;
                 }
+
                 // SNAPPY LOADING STATE
                 const originalContent = addBtn.innerHTML;
                 addBtn.innerHTML = "<span>Adding...</span>";
                 addBtn.style.opacity = "0.7";
+
                 // 5 Second Loading Delay
                 setTimeout(() => {
+                    // Reset Button UI
                     addBtn.style.display = "none";
                     addBtn.style.opacity = "1";
                     addBtn.innerHTML = originalContent;
                     addBtn.disabled = false;
+
+                    // Show Quantity UI
                     qtySelector.style.display = "flex";
                     qtyDisplay.textContent = "x1";
+
+                    // 🔥 USE CAPTURED VARIABLES
                     if (window.addToCart) {
-                        // FIXED: Using variables defined in createProductCard scope
-                        window.addToCart(products.name, products.price, products.image_url, products.id);
+                        window.addToCart(pName, pPrice, pImg, pId);
+                    } else {
+                        console.error("addToCart function not found on window. Is cart.js loaded?");
                     }
                 }, 5000);
             });
