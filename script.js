@@ -488,15 +488,14 @@ document.addEventListener("DOMContentLoaded", () => {
         const productImage = card.querySelector("img").src;
         const productId = card.dataset.id;
 
-if (addBtn) {
+        if (addBtn) {
             addBtn.addEventListener("click", async () => {
-                console.log("🖱️ Add to Cart clicked for:", product.name);
-
-                // 🛑 RACE CONDITION FIX
+                // 🛑 RACE CONDITION FIX: Immediately disable
                 if (addBtn.disabled) return;
                 addBtn.disabled = true;
 
-                // 📸 CAPTURE DATA IMMEDIATELY (The fix for 'not defined' error)
+                // 🔥 CAPTURE VALUES IMMEDIATELY
+                // This ensures the data exists even after the 5-second wait
                 const pName = product.name;
                 const pPrice = product.price;
                 const pImg = product.image_url;
@@ -512,43 +511,50 @@ if (addBtn) {
                 const {data: {user}} = await supabaseClient.auth.getUser();
                 if (!user) {
                     showToast("Please login to start shopping! 🛍️");
-                    setTimeout(() => { window.location.href = "index_login.html"; }, 1500);
+                    setTimeout(() => {
+                        window.location.href = "index_login.html";
+                    }, 1500);
                     return;
                 }
 
-                // ⏳ START LOADING STATE
+                // SNAPPY LOADING STATE
                 const originalContent = addBtn.innerHTML;
                 addBtn.innerHTML = "<span>Adding...</span>";
                 addBtn.style.opacity = "0.7";
 
                 // 5 Second Loading Delay
                 setTimeout(() => {
-                    console.log("⏰ 5s Delay finished. Attempting to add:", pName);
+                    // 1. 🔥 FIRST: Update the Cart Data using Captured Variables
+                    if (window.addToCart) {
+                        try {
+                            // Use the captured pName, pPrice, etc.
+                            window.addToCart(pName, pPrice, pImg, pId);
 
-                    // 1. Check if the function exists
-                    if (typeof window.addToCart === 'function') {
-                        // 2. USE THE CAPTURED VARIABLES (pName, pPrice, etc)
-                        window.addToCart(pName, pPrice, pImg, pId);
-                        
-                        // 3. Update UI
-                        addBtn.style.display = "none";
-                        addBtn.style.opacity = "1";
-                        addBtn.innerHTML = originalContent;
-                        addBtn.disabled = false;
+                            // 2. SECOND: Only if logic succeeds, update UI
+                            addBtn.style.display = "none";
+                            addBtn.style.opacity = "1";
+                            addBtn.innerHTML = originalContent;
+                            addBtn.disabled = false;
 
-                        qtySelector.style.display = "flex";
-                        qtyDisplay.textContent = "x1";
-                        console.log("✅ UI Updated to x1");
+                            qtySelector.style.display = "flex";
+                            qtyDisplay.textContent = "x1";
+                        } catch (err) {
+                            console.error("Cart Update Error:", err);
+                            showToast("Error updating cart. Please try again.");
+                            addBtn.disabled = false;
+                            addBtn.innerHTML = originalContent;
+                            addBtn.style.opacity = "1";
+                        }
                     } else {
-                        console.error("❌ ERROR: addToCart function not found on window object!");
-                        showToast("Cart system error. Please refresh.");
+                        console.error("addToCart function is not globally available.");
                         addBtn.disabled = false;
                         addBtn.innerHTML = originalContent;
                         addBtn.style.opacity = "1";
                     }
-                }, 5000); 
+                }, 5000);
             });
         }
+
         if (plusBtn) {
             plusBtn.addEventListener("click", () => {
                 let currentQty = parseInt(qtyDisplay.textContent.replace("x", ""));
