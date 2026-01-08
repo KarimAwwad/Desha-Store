@@ -36,6 +36,55 @@ document.addEventListener("DOMContentLoaded", () => {
     let cardToDelete = null;
 
     /* --------------------------
+        🎨 TOAST NOTIFICATION SYSTEM
+    -------------------------- */
+    function showToast(message, isError = true) {
+        // Remove existing toast if user clicks fast
+        const existingToast = document.querySelector('.desha-toast');
+        if (existingToast) existingToast.remove();
+
+        const toast = document.createElement('div');
+        toast.className = 'desha-toast';
+        toast.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 18px;">${isError ? '⚠️' : '✅'}</span>
+                <span>${message}</span>
+            </div>
+        `;
+
+        // Polished Styles matching Noon Aesthetic
+        Object.assign(toast.style, {
+            position: 'fixed',
+            bottom: '30px',
+            left: '50%',
+            transform: 'translateX(-50%) translateY(100px)',
+            background: isError ? '#333' : '#4CAF50',
+            color: 'white',
+            padding: '12px 24px',
+            borderRadius: '50px',
+            fontSize: '14px',
+            fontWeight: '600',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
+            zIndex: '10000',
+            transition: 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+            whiteSpace: 'nowrap'
+        });
+
+        document.body.appendChild(toast);
+
+        // Animate In
+        requestAnimationFrame(() => {
+            toast.style.transform = 'translateX(-50%) translateY(0)';
+        });
+
+        // Animate Out & Remove
+        setTimeout(() => {
+            toast.style.transform = 'translateX(-50%) translateY(100px)';
+            setTimeout(() => toast.remove(), 400);
+        }, 3000);
+    }
+
+    /* --------------------------
         📉 COMPRESSION ENGINE
     -------------------------- */
 
@@ -146,6 +195,13 @@ document.addEventListener("DOMContentLoaded", () => {
         const stockCount = product.stock_quantity !== undefined ? product.stock_quantity : 1;
         const isOutOfStock = !isTemp && stockCount <= 0;
 
+        // 🔥 SAFETY UPDATE: Stock quantity turns red when it's 10 or below
+        const isLowStock = stockCount > 0 && stockCount <= 10;
+
+        // 🆕 NEW: CHECK LOCAL STORAGE FOR QUANTITY
+        const cartData = JSON.parse(localStorage.getItem('desha_cart')) || [];
+        const quantityInCart = cartData.filter(item => item.id === product.id).length;
+
         const card = document.createElement("article");
         card.classList.add("card");
         if (isTemp) card.classList.add("optimistic");
@@ -167,14 +223,27 @@ document.addEventListener("DOMContentLoaded", () => {
             <div class="meta">
                 <p class="price">${product.price} L.E</p>
                 <p class="product-name">${product.name}</p>
-                <p class="stock-info" style="font-size: 11px; color: ${isOutOfStock ? 'red' : '#888'}; margin-top: 4px;">${isOutOfStock ? 'Currently Out of Stock' : 'In Stock: ' + stockCount}</p>
+                <p class="stock-info" style="font-size: 11px; color: ${isOutOfStock || isLowStock ? 'red' : '#888'}; margin-top: 4px; font-weight: ${isLowStock ? 'bold' : 'normal'};">
+                    ${isOutOfStock ? 'Currently Out of Stock' : 'In Stock: ' + stockCount}
+                </p>
             </div>
             <div class="card-actions">
                 <button class="edit-btn">✏️ Edit</button>
                 <button class="delete-btn">🗑️ Delete</button>
-                <button class="add-to-cart-btn" ${isOutOfStock ? 'disabled style="background:#ccc; cursor:not-allowed;"' : ''}>
-                    ${isOutOfStock ? 'Out of Stock' : '🛒 Add to Cart'}
-                </button>
+                
+                <div class="cart-controls-wrapper" style="width: 100%; margin-top: 10px;">
+                    <button class="add-to-cart-btn" style="${(isOutOfStock || quantityInCart > 0) ? 'display:none;' : 'display:block; width:100%;'}">
+                        🛒 Add to Cart
+                    </button>
+                    
+                    <div class="noon-qty-selector" style="${(quantityInCart > 0 && !isOutOfStock) ? 'display:flex;' : 'display:none;'} align-items: center; justify-content: space-between; border: 2px solid #007bff; border-radius: 50px; padding: 4px 12px; background: #fff;">
+                        <button class="minus-btn" style="background:none; border:none; color:#007bff; font-size:20px; cursor:pointer; font-weight:bold;">−</button>
+                        <span class="qty-display" style="font-weight:bold; font-size:15px; color:#333;">x${quantityInCart}</span>
+                        <button class="plus-btn" style="background:none; border:none; color:#007bff; font-size:20px; cursor:pointer; font-weight:bold;">+</button>
+                    </div>
+
+                    ${isOutOfStock ? '<button disabled style="width:100%; background:#ccc; cursor:not-allowed; border:none; padding:8px; border-radius:5px;">Out of Stock</button>' : ''}
+                </div>
             </div>
         `;
 
@@ -282,7 +351,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const productId = editMode && editingCard ? editingCard.dataset.id : null;
 
         if (!name || !price || (!storedImageSrc && !editMode)) {
-            alert("Please fill all fields, bestie!");
+            showToast("Please fill all fields, bestie!");
             return;
         }
 
@@ -354,7 +423,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (!saved) {
                 if (!editMode) activeCard.remove();
-                alert("❌ Sync failed. Check console.");
+                showToast("❌ Sync failed. Check console.");
                 return;
             }
 
@@ -407,21 +476,77 @@ document.addEventListener("DOMContentLoaded", () => {
             deletePopup.style.display = "flex";
         });
 
-        // 🛒 Add to Cart Listener (NOW LINKED TO CART.JS)
-        card.querySelector(".add-to-cart-btn").addEventListener("click", () => {
-            const productName = card.querySelector(".product-name").textContent;
-            const productPrice = card.querySelector(".price").textContent.replace("L.E", "").trim();
-            const productImage = card.querySelector("img").src;
-            // 🔥 ADD THIS LINE: Get the ID we stored in the dataset
-            const productId = card.dataset.id;
-            // This calls the function in your cart.js file
-            if (window.addToCart) {
-                // 🔥 UPDATE THIS LINE: Add productId as the 4th argument
-                window.addToCart(productName, productPrice, productImage, productId);
-            } else {
-                console.error("Cart logic not loaded yet!");
-            }
-        });
+        // 🛒 NOON-STYLE CART LISTENERS
+        const addBtn = card.querySelector(".add-to-cart-btn");
+        const qtySelector = card.querySelector(".noon-qty-selector");
+        const qtyDisplay = card.querySelector(".qty-display");
+        const plusBtn = card.querySelector(".plus-btn");
+        const minusBtn = card.querySelector(".minus-btn");
+
+        const productName = card.querySelector(".product-name").textContent;
+        const productPrice = card.querySelector(".price").textContent.replace("L.E", "").trim();
+        const productImage = card.querySelector("img").src;
+        const productId = card.dataset.id;
+
+        if (addBtn) {
+            addBtn.addEventListener("click", async () => {
+                const stockLimit = parseInt(card.dataset.stock) || 0;
+
+                // 🛑 CHECK STOCK FIRST
+                if (stockLimit <= 0) {
+                    showToast("Sorry, this item is out of stock!");
+                    return;
+                }
+
+                const {data: {user}} = await supabaseClient.auth.getUser();
+                if (!user) {
+                    showToast("Please login to start shopping! 🛍️");
+                    setTimeout(() => {
+                        window.location.href = "index_login.html";
+                    }, 1500);
+                    return;
+                }
+
+                addBtn.style.display = "none";
+                qtySelector.style.display = "flex";
+                qtyDisplay.textContent = "x1";
+                if (window.addToCart) {
+                    window.addToCart(productName, productPrice, productImage, productId);
+                }
+            });
+        }
+
+        if (plusBtn) {
+            plusBtn.addEventListener("click", () => {
+                let currentQty = parseInt(qtyDisplay.textContent.replace("x", ""));
+                const stockLimit = parseInt(card.dataset.stock) || 0;
+
+                // 🛑 CHECK IF USER IS EXCEEDING STOCK
+                if (currentQty >= stockLimit) {
+                    showToast(`Limit reached: Only ${stockLimit} units in stock.`);
+                    return; // Stop here
+                }
+
+                qtyDisplay.textContent = `x${currentQty + 1}`;
+                if (window.addToCart) {
+                    window.addToCart(productName, productPrice, productImage, productId);
+                }
+            });
+        }
+
+        if (minusBtn) {
+            minusBtn.addEventListener("click", () => {
+                let currentQty = parseInt(qtyDisplay.textContent.replace("x", ""));
+                if (currentQty > 1) {
+                    qtyDisplay.textContent = `x${currentQty - 1}`;
+                    if (window.removeOneFromCart) window.removeOneFromCart(productId);
+                } else {
+                    qtySelector.style.display = "none";
+                    addBtn.style.display = "block";
+                    if (window.removeOneFromCart) window.removeOneFromCart(productId);
+                }
+            });
+        }
     }
 
     cancelDeleteBtn.addEventListener("click", () => {
@@ -507,6 +632,11 @@ document.addEventListener("DOMContentLoaded", () => {
             .from("products")
             .select("*")
             .order("created_at", {ascending: false});
+
+        // 🆕 Hide the global loader-container once data is received
+        if (document.getElementById('loading-placeholder')) {
+            document.getElementById('loading-placeholder').style.display = 'none';
+        }
 
         skeletons.forEach(s => s.remove());
         if (data) {
@@ -653,7 +783,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (!document.getElementById(styleId)) {
                 const style = document.createElement('style');
                 style.id = styleId;
-                style.innerHTML = `.add-to-cart-btn { display: none !important; }`;
+                style.innerHTML = `.add-to-cart-btn, .noon-qty-selector { display: none !important; }`;
                 document.head.appendChild(style);
             }
         }
@@ -711,5 +841,24 @@ document.addEventListener("DOMContentLoaded", () => {
         sendTelegramAlert(msg);
     };
 
-    console.log("🚀 Script fully loaded at high line count!");
+    /* --------------------------
+        🔄 CART UI SYNC HELPER
+    -------------------------- */
+    // This function is called by cart.js when an item is deleted from the sidebar
+    window.resetProductCardUI = (productId) => {
+        const card = document.querySelector(`.card[data-id="${productId}"]`);
+        if (card) {
+            const addBtn = card.querySelector(".add-to-cart-btn");
+            const qtySelector = card.querySelector(".noon-qty-selector");
+            const qtyDisplay = card.querySelector(".qty-display");
+
+            if (addBtn && qtySelector) {
+                qtySelector.style.display = "none";
+                addBtn.style.display = "block";
+                if (qtyDisplay) qtyDisplay.textContent = "x1";
+            }
+        }
+    };
+
+    console.log("🚀 Script fully loaded at high line count with Noon UI and Auth Guard!");
 });

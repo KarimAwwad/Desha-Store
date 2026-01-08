@@ -12,6 +12,51 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (!registerForm) return;
 
+    /* --------------------------
+        🎨 TOAST NOTIFICATION SYSTEM
+    -------------------------- */
+    function showToast(message, isError = true) {
+        const existingToast = document.querySelector('.desha-toast');
+        if (existingToast) existingToast.remove();
+
+        const toast = document.createElement('div');
+        toast.className = 'desha-toast';
+        toast.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 18px;">${isError ? '⚠️' : '✅'}</span>
+                <span>${message}</span>
+            </div>
+        `;
+
+        Object.assign(toast.style, {
+            position: 'fixed',
+            bottom: '30px',
+            left: '50%',
+            transform: 'translateX(-50%) translateY(100px)',
+            background: isError ? '#333' : '#4CAF50',
+            color: 'white',
+            padding: '12px 24px',
+            borderRadius: '50px',
+            fontSize: '14px',
+            fontWeight: '600',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
+            zIndex: '10000',
+            transition: 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+            whiteSpace: 'nowrap'
+        });
+
+        document.body.appendChild(toast);
+
+        requestAnimationFrame(() => {
+            toast.style.transform = 'translateX(-50%) translateY(0)';
+        });
+
+        setTimeout(() => {
+            toast.style.transform = 'translateX(-50%) translateY(100px)';
+            setTimeout(() => toast.remove(), 400);
+        }, 3000);
+    }
+
     registerForm.addEventListener('submit', async (e) => {
         e.preventDefault();
 
@@ -29,21 +74,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // 2. Client-side Validation
         if (password !== confirmPassword) {
-            alert("Passwords do not match! ❌");
+            showToast("Passwords do not match, bestie! ❌", true);
             return;
         }
 
         if (password.length < 6) {
-            alert("Password must be at least 6 characters.");
+            showToast("Password should be at least 6 characters!", true);
             return;
         }
 
-        // 3. UI Loading State
-        submitBtn.innerText = "Processing...";
-        submitBtn.disabled = true;
-
         try {
-            /* --- STEP 1: CREATE AUTH ACCOUNT --- */
+            submitBtn.innerText = "Creating account...";
+            submitBtn.disabled = true;
+
+            /* --- STEP 1: SIGN UP IN SUPABASE AUTH --- */
             const {data: authData, error: authError} = await supabaseClient.auth.signUp({
                 email: email,
                 password: password,
@@ -81,7 +125,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         } catch (error) {
             console.error("Registration Error:", error.message);
-            alert("Error: " + error.message);
+            showToast("Error: " + error.message, true);
         } finally {
             submitBtn.innerText = "Create account";
             submitBtn.disabled = false;

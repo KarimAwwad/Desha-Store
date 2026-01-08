@@ -1606,3 +1606,78 @@ form.reg-form input:focus {
     filter: grayscale(1) blur(1px);
     transition: all 0.3s ease;
 }
+
+.qty-selector {
+    border: 2.5px solid #007bff !important;
+    transition: all 0.3s ease;
+}
+
+.qty-selector button:active {
+    transform: scale(0.9);
+}
+
+.out-of-stock-badge {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 10px;
+    border-radius: 5px;
+    font-weight: bold;
+    z-index: 10;
+}
+
+/* --- PREMIUM TOUCHES --- */
+
+/* 1. Smooth Scrolling */
+html {
+    scroll-behavior: smooth;
+}
+
+/* 2. Loading Spinner for Products */
+.loader-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 100px 0;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #333; /* Matches your black/white theme */
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 15px;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* 3. Empty Cart "Start Shopping" Button */
+.empty-cart-btn {
+    margin-top: 20px;
+    background: #333;
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 50px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.empty-cart-btn:hover {
+    transform: scale(1.05);
+    background: #000;
+}

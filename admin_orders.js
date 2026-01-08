@@ -2,13 +2,62 @@
 (async () => {
     const {data: {user}} = await supabaseClient.auth.getUser();
 
+    /* --------------------------
+        🎨 TOAST NOTIFICATION SYSTEM
+    -------------------------- */
+    function showToast(message, isError = true) {
+        // Remove existing toast if user clicks fast
+        const existingToast = document.querySelector('.desha-toast');
+        if (existingToast) existingToast.remove();
+
+        const toast = document.createElement('div');
+        toast.className = 'desha-toast';
+        toast.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 18px;">${isError ? '⚠️' : '✅'}</span>
+                <span>${message}</span>
+            </div>
+        `;
+
+        // Polished Styles matching Noon Aesthetic
+        Object.assign(toast.style, {
+            position: 'fixed',
+            bottom: '30px',
+            left: '50%',
+            transform: 'translateX(-50%) translateY(100px)',
+            background: isError ? '#333' : '#4CAF50',
+            color: 'white',
+            padding: '12px 24px',
+            borderRadius: '50px',
+            fontSize: '14px',
+            fontWeight: '600',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
+            zIndex: '10000',
+            transition: 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+            whiteSpace: 'nowrap'
+        });
+
+        document.body.appendChild(toast);
+
+        // Animate In
+        requestAnimationFrame(() => {
+            toast.style.transform = 'translateX(-50%) translateY(0)';
+        });
+
+        // Animate Out & Remove
+        setTimeout(() => {
+            toast.style.transform = 'translateX(-50%) translateY(100px)';
+            setTimeout(() => toast.remove(), 400);
+        }, 3000);
+    }
+
     // Function to show the custom polished modal and redirect
     const kickUser = () => {
         const modal = document.getElementById('accessDeniedModal');
         if (modal) {
             modal.style.display = 'flex';
         } else {
-            alert("🚫 Access Denied: Admins Only!");
+            showToast("🚫 Access Denied: Admins Only!", true);
         }
 
         setTimeout(() => {
@@ -39,6 +88,9 @@
             initDashboard();
         }
     }
+
+    // Export showToast to window so functions below can use it
+    window.showToast = showToast;
 })();
 
 // Global state
@@ -180,7 +232,7 @@ window.updateOrderStatus = async (orderId, newStatus) => {
         .eq('id', orderId);
 
     if (error) {
-        alert(`Failed: ${error.message}`);
+        if (window.showToast) window.showToast(`Failed: ${error.message}`, true);
     } else {
         fetchOrders();
     }
@@ -215,10 +267,11 @@ window.handleConfirmDelete = async () => {
 
     if (error) {
         console.error("Delete Error:", error);
-        alert("Error deleting order: " + error.message);
+        if (window.showToast) window.showToast("Error deleting order: " + error.message, true);
     } else {
         console.log("Order deleted successfully.");
         window.closeDeleteOrderModal();
+        if (window.showToast) window.showToast("Order deleted successfully.", false);
         fetchOrders(); // Refresh table
     }
 };
