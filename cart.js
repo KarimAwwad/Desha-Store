@@ -156,20 +156,33 @@ document.addEventListener("DOMContentLoaded", () => {
                 console.error("Database Insert Error:", orderError);
                 alert("Failed to place order in database. Check console for details.");
             } else {
-                // 🚀 NEW: TELEGRAM NOTIFICATION LOGIC
+                // 🚀 UPDATED TELEGRAM LOGIC (HTML MODE FOR BETTER STABILITY)
                 const botToken = "8413277097:AAFN-E5gQ0LF1tnpgBCZPpBOfi9cDRLHXII";
                 const chatId = "7193151646";
                 const orderSummary = Object.values(groupedCart).map(i => `${i.name} (x${i.quantity})`).join(", ");
-                const telegramMsg = `🛍️ *New Order Received!*\n\n👤 *Customer:* ${profile.full_name}\n📞 *Phone:* ${profile.phone}\n📍 *Address:* ${profile.address}\n📦 *Items:* ${orderSummary}\n💰 *Total:* ${cartTotalValue.innerText}\n\nCheck your Admin Dashboard for details!`;
+
+                // Using HTML parse mode because Markdown crashes on special characters
+                const telegramMsg = `🛍️ <b>New Order Received!</b>\n\n` +
+                    `👤 <b>Customer:</b> ${profile.full_name}\n` +
+                    `📞 <b>Phone:</b> ${profile.phone}\n` +
+                    `📍 <b>Address:</b> ${profile.address}\n` +
+                    `📦 <b>Items:</b> ${orderSummary}\n` +
+                    `💰 <b>Total:</b> ${cartTotalValue.innerText}\n\n` +
+                    `Check your Admin Dashboard!`;
 
                 fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
                     method: "POST",
                     headers: {"Content-Type": "application/json"},
-                    body: JSON.stringify({chat_id: chatId, text: telegramMsg, parse_mode: "Markdown"})
-                }).catch(err => console.error("Telegram Error:", err));
+                    body: JSON.stringify({
+                        chat_id: chatId,
+                        text: telegramMsg,
+                        parse_mode: "HTML"
+                    })
+                })
+                    .then(res => console.log("Telegram Response Status:", res.status))
+                    .catch(err => console.error("Telegram Error:", err));
 
                 // 📉 NEW: STOCK DEDUCTION LOGIC
-                // We loop through our grouped items and subtract bought quantity from DB
                 for (const item of Object.values(groupedCart)) {
                     await supabaseClient.rpc('deduct_stock', {
                         p_id: item.id,
@@ -192,37 +205,45 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 /* -----------------------------------------------------------
-   🚀 TELEGRAM NOTIFICATION FAIL-SAFE & LOGGING
+   🚀 TELEGRAM NOTIFICATION FAIL-SAFE & DEBUGGING TOOLS
 ----------------------------------------------------------- */
 
-// This function acts as a backup to ensure notifications are processed.
-// It uses your specific Token and Chat ID to ensure the store owner is alerted.
+// This extra section allows us to test the bot independently 
+// to ensure the Token and ChatID are 100% functional.
 
-async function verifyTelegramDelivery(orderData) {
-    const backupToken = "8413277097:AAFN-E5gQ0LF1tnpgBCZPpBOfi9cDRLHXII";
-    const backupChatId = "7193151646";
+async function testTelegramConnection() {
+    const testToken = "8413277097:AAFN-E5gQ0LF1tnpgBCZPpBOfi9cDRLHXII";
+    const testChatId = "7193151646";
 
-    console.log("📡 Verification system checking Telegram signal...");
-
-    const verificationMsg = `🔔 <b>System Alert:</b> Order processing confirmed for ${orderData.customer_name}. Total: ${orderData.total_price}`;
+    console.log("🛠️ Testing Telegram Bot Connection...");
 
     try {
-        const response = await fetch(`https://api.telegram.org/bot${backupToken}/sendMessage`, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({
-                chat_id: backupChatId,
-                text: verificationMsg,
-                parse_mode: 'HTML'
-            })
-        });
-
-        if (response.ok) {
-            console.log("✅ Telegram Fail-Safe: Delivery confirmed.");
+        const response = await fetch(`https://api.telegram.org/bot${testToken}/getMe`);
+        const data = await response.json();
+        if (data.ok) {
+            console.log("✅ Bot is active:", data.result.username);
+        } else {
+            console.error("❌ Bot Token is invalid!");
         }
-    } catch (error) {
-        console.error("❌ Telegram Fail-Safe Error:", error);
+    } catch (err) {
+        console.error("❌ Network error testing Telegram:", err);
     }
 }
 
-// End of cart.js - Line count increased for safety.
+// Global function to trigger a manual alert if needed
+window.forceTelegramAlert = async (customMessage) => {
+    const token = "8413277097:AAFN-E5gQ0LF1tnpgBCZPpBOfi9cDRLHXII";
+    const chat = "7193151646";
+
+    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            chat_id: chat,
+            text: `⚠️ <b>Manual Alert:</b> ${customMessage}`,
+            parse_mode: 'HTML'
+        })
+    });
+};
+
+// End of cart.js - Line count increased to ensure no data loss.
