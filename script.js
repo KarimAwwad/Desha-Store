@@ -642,7 +642,27 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
+// --- Bottom of script.js ---
+
+// 1. Ensure this only runs AFTER you have initialized: 
+// const supabase = supabase.createClient(URL, KEY);
+
+// 2. The Real-Time Listener
+    supabase
+        .channel('stock-updates')
+        .on('postgres_changes',
+            {event: 'UPDATE', schema: 'public', table: 'products'},
+            (payload) => {
+                console.log('Stock changed in DB, updating UI...', payload.new);
+
+                // This must be the name of the function you use to load/draw products
+                // If your function is named fetchProducts, use that here!
+                fetchProducts();
+            }
+        )
+        .subscribe();
     // Initialize UI and Lock
     updateAuthUI();
     applyAdminLock();
+
 });
