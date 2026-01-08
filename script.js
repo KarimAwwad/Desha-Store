@@ -230,19 +230,19 @@ document.addEventListener("DOMContentLoaded", () => {
             <div class="card-actions">
                 <button class="edit-btn">✏️ Edit</button>
                 <button class="delete-btn">🗑️ Delete</button>
-                ${!isOutOfStock ? `
-                    <div class="cart-controls-wrapper" style="width: 100%; margin-top: 10px;">
+                
+                <div class="cart-controls-wrapper" style="width: 100%; margin-top: 10px;">
+                    ${!isOutOfStock ? `
                         <button class="add-to-cart-btn" style="${(quantityInCart > 0) ? 'display:none;' : 'display:block; width:100%;'}">
                             🛒 Add to Cart
                         </button>
-                        
                         <div class="noon-qty-selector" style="${(quantityInCart > 0) ? 'display:flex;' : 'display:none;'} align-items: center; justify-content: space-between; border: 2px solid #007bff; border-radius: 50px; padding: 4px 12px; background: #fff;">
                             <button class="minus-btn" style="background:none; border:none; color:#007bff; font-size:20px; cursor:pointer; font-weight:bold;">−</button>
                             <span class="qty-display" style="font-weight:bold; font-size:15px; color:#333;">x${quantityInCart}</span>
                             <button class="plus-btn" style="background:none; border:none; color:#007bff; font-size:20px; cursor:pointer; font-weight:bold;">+</button>
                         </div>
-                    </div>
-                ` : ''}
+                    ` : ''}
+                </div>
             </div>
         `;
 
