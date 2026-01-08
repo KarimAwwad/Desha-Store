@@ -1700,8 +1700,3 @@ html {
         transform: rotate(360deg);
     }
 }
-
-.cart-controls-wrapper:empty {
-    display: none;
-    margin-top: 0;
-}
