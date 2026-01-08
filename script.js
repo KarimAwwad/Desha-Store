@@ -518,17 +518,24 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 // 5 Second Loading Delay
                 setTimeout(() => {
-                    addBtn.style.display = "none";
-                    addBtn.style.opacity = "1";
-                    addBtn.innerHTML = originalContent;
-                    addBtn.disabled = false;
-
-                    qtySelector.style.display = "flex";
-                    qtyDisplay.textContent = "x1";
-
+                    // UPDATED: Core logic for cart quantity synchronization
                     if (window.addToCart) {
-                        // FIXED: Using variables defined in createProductCard scope
+                        // Ensure these variable names match your loop's 'product' object
                         window.addToCart(product.name, product.price, product.image_url, product.id);
+
+                        // Only change UI after the logic successfully fires
+                        addBtn.style.display = "none";
+                        addBtn.style.opacity = "1";
+                        addBtn.innerHTML = originalContent;
+                        addBtn.disabled = false;
+
+                        qtySelector.style.display = "flex";
+                        qtyDisplay.textContent = "x1";
+                    } else {
+                        console.error("Cart system not initialized.");
+                        addBtn.disabled = false;
+                        addBtn.innerHTML = originalContent;
+                        addBtn.style.opacity = "1";
                     }
                 }, 5000);
             });
