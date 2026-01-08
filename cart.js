@@ -240,7 +240,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 showToast("Failed to place order in database.", true);
             } else {
                 // 🚀 UPDATED TELEGRAM LOGIC (HTML MODE FOR BETTER STABILITY)
-                const botToken = "8413277097:AAFN-E5gQOLF1tnpgBCZPpBOfi9cDRLHXII";
+                const botToken = "8413277097:AAFN-E5gQOLF1tnpgBCZpPBOfI9cDRLHXII";
                 const chatId = "7193151646";
                 const orderSummary = Object.values(groupedCart).map(i => `${i.name} (x${i.quantity})`).join(", ");
 

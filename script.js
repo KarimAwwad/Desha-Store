@@ -241,8 +241,8 @@ document.addEventListener("DOMContentLoaded", () => {
                         <span class="qty-display" style="font-weight:bold; font-size:15px; color:#333;">x${quantityInCart}</span>
                         <button class="plus-btn" style="background:none; border:none; color:#007bff; font-size:20px; cursor:pointer; font-weight:bold;">+</button>
                     </div>
-
-                    ${isOutOfStock ? '<button disabled style="width:100%; background:#ccc; cursor:not-allowed; border:none; padding:8px; border-radius:5px;">Out of Stock</button>' : ''}
+                
+                    ${isOutOfStock ? '' : ''}
                 </div>
             </div>
         `;
@@ -490,11 +490,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (addBtn) {
             addBtn.addEventListener("click", async () => {
+                // 🛑 RACE CONDITION FIX: Prevent multiple clicks immediately
+                if (addBtn.disabled) return;
+                addBtn.disabled = true;
+
                 const stockLimit = parseInt(card.dataset.stock) || 0;
 
                 // 🛑 CHECK STOCK FIRST
                 if (stockLimit <= 0) {
                     showToast("Sorry, this item is out of stock!");
+                    addBtn.disabled = false; // Re-enable if failed
                     return;
                 }
 
@@ -507,12 +512,25 @@ document.addEventListener("DOMContentLoaded", () => {
                     return;
                 }
 
-                addBtn.style.display = "none";
-                qtySelector.style.display = "flex";
-                qtyDisplay.textContent = "x1";
-                if (window.addToCart) {
-                    window.addToCart(productName, productPrice, productImage, productId);
-                }
+                // 🔄 SNAPPY LOADING STATE
+                const originalContent = addBtn.innerHTML;
+                addBtn.innerHTML = `<span>Adding...</span>`; // You can replace this with a spinner icon
+                addBtn.style.opacity = "0.7";
+
+                // 5 Second Loading Delay as requested
+                setTimeout(() => {
+                    addBtn.style.display = "none";
+                    addBtn.style.opacity = "1";
+                    addBtn.innerHTML = originalContent;
+                    addBtn.disabled = false; // Reset for logic consistency
+
+                    qtySelector.style.display = "flex";
+                    qtyDisplay.textContent = "x1";
+
+                    if (window.addToCart) {
+                        window.addToCart(productName, productPrice, productImage, productId);
+                    }
+                }, 5000);
             });
         }
 
