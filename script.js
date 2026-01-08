@@ -659,25 +659,19 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // 🔄 REAL-TIME LISTENER (FIXED TO PREVENT GHOSTING)
-    let updateTimeout;
+// 🔄 REAL-TIME LISTENER (THE RIGHT WAY)
     supabaseClient
         .channel('stock-updates')
-        .on('postgres_changes',
-            {event: '*', schema: 'public', table: 'products'},
-            (payload) => {
-                console.log('Stock changed in DB, updating UI...', payload.new);
-
-                // 🔥 GHOST FIX: Clear grids with debounce to prevent double-rendering
-                clearTimeout(updateTimeout);
-                updateTimeout = setTimeout(() => {
-                    document.querySelectorAll(".grid").forEach(grid => {
-                        grid.querySelectorAll(".card:not(.upload-area)").forEach(p => p.remove());
-                    });
-                    fetchProducts();
-                }, 100);
+        .on('postgres_changes', {event: 'UPDATE', schema: 'public', table: 'products'}, (payload) => {
+            // If the update coming from the DB is the SAME one we just finished editing locally...
+            if (editingCard && payload.new.id == editingCard.dataset.id) {
+                console.log("Ignoring echo from our own update to prevent ghosts.");
+                return; // 🛑 Stop right here. Don't re-render.
             }
-        )
+
+            // If it's a DIFFERENT product (someone else bought something), then refresh.
+            fetchProducts();
+        })
         .subscribe();
 
     // Initialize UI and Lock
