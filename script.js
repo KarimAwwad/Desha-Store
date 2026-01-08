@@ -197,6 +197,8 @@ document.addEventListener("DOMContentLoaded", () => {
     function insertCardIntoGrid(card, category) {
         const grid = document.querySelector(`#${category}Grid`);
         if (grid) {
+            // 🔥 GHOST FIX: Prevent duplication if card ID already exists in this grid
+            if (card.dataset.id && grid.querySelector(`[data-id="${card.dataset.id}"]`)) return;
             const uploadArea = grid.querySelector(".upload-area");
             grid.insertBefore(card, uploadArea);
         }
@@ -658,6 +660,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // 🔄 REAL-TIME LISTENER (FIXED TO PREVENT GHOSTING)
+    let updateTimeout;
     supabaseClient
         .channel('stock-updates')
         .on('postgres_changes',
@@ -665,14 +668,14 @@ document.addEventListener("DOMContentLoaded", () => {
             (payload) => {
                 console.log('Stock changed in DB, updating UI...', payload.new);
 
-                // 🔥 THE GHOST FIX: Before re-fetching, we clear the grid of existing products
-                // This prevents the "new product created" look when it's just an update
-                document.querySelectorAll(".grid").forEach(grid => {
-                    const existingProducts = grid.querySelectorAll(".card:not(.upload-area)");
-                    existingProducts.forEach(product => product.remove());
-                });
-
-                fetchProducts();
+                // 🔥 GHOST FIX: Clear grids with debounce to prevent double-rendering
+                clearTimeout(updateTimeout);
+                updateTimeout = setTimeout(() => {
+                    document.querySelectorAll(".grid").forEach(grid => {
+                        grid.querySelectorAll(".card:not(.upload-area)").forEach(p => p.remove());
+                    });
+                    fetchProducts();
+                }, 100);
             }
         )
         .subscribe();
