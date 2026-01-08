@@ -227,23 +227,23 @@ document.addEventListener("DOMContentLoaded", () => {
                     ${isOutOfStock ? 'Currently Out of Stock' : 'In Stock: ' + stockCount}
                 </p>
             </div>
-            <div class="card-actions" style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%;">
-                <div class="admin-btns-row" style="display: flex; gap: 15px; justify-content: center; align-items: center; width: 100%;">
-                    <button class="edit-btn">✏️ Edit</button>
-                    <button class="delete-btn">🗑️ Delete</button>
-                </div>
-                ${!isOutOfStock ? `
+            <div class="card-actions">
+                <button class="edit-btn">✏️ Edit</button>
+                <button class="delete-btn">🗑️ Delete</button>
+                
                 <div class="cart-controls-wrapper" style="width: 100%; margin-top: 10px;">
-                    <button class="add-to-cart-btn" style="${(quantityInCart > 0) ? 'display:none;' : 'display:block; width:100%;'}">
+                    <button class="add-to-cart-btn" style="${(isOutOfStock || quantityInCart > 0) ? 'display:none;' : 'display:block; width:100%;'}">
                         🛒 Add to Cart
                     </button>
-                    <div class="noon-qty-selector" style="${(quantityInCart > 0) ? 'display:flex;' : 'display:none;'} align-items: center; justify-content: space-between; border: 2px solid #007bff; border-radius: 50px; padding: 4px 12px; background: #fff;">
+                    
+                    <div class="noon-qty-selector" style="${(quantityInCart > 0 && !isOutOfStock) ? 'display:flex;' : 'display:none;'} align-items: center; justify-content: space-between; border: 2px solid #007bff; border-radius: 50px; padding: 4px 12px; background: #fff;">
                         <button class="minus-btn" style="background:none; border:none; color:#007bff; font-size:20px; cursor:pointer; font-weight:bold;">−</button>
                         <span class="qty-display" style="font-weight:bold; font-size:15px; color:#333;">x${quantityInCart}</span>
                         <button class="plus-btn" style="background:none; border:none; color:#007bff; font-size:20px; cursor:pointer; font-weight:bold;">+</button>
                     </div>
+
+                    ${isOutOfStock ? '<button disabled style="width:100%; background:#ccc; cursor:not-allowed; border:none; padding:8px; border-radius:5px;">Out of Stock</button>' : ''}
                 </div>
-                ` : ''}
             </div>
         `;
 
@@ -489,23 +489,12 @@ document.addEventListener("DOMContentLoaded", () => {
         const productId = card.dataset.id;
 
         if (addBtn) {
-            // 🛑 NEW: Capture the data here, BEFORE the click even happens
-            // We use different variable names to be 100% safe
-            const currentItemName = product.name;
-            const currentItemPrice = product.price;
-            const currentItemImg = product.image_url;
-            const currentItemId = product.id;
-
             addBtn.addEventListener("click", async () => {
-                // 🛑 RACE CONDITION FIX
-                if (addBtn.disabled) return;
-                addBtn.disabled = true;
-
                 const stockLimit = parseInt(card.dataset.stock) || 0;
 
+                // 🛑 CHECK STOCK FIRST
                 if (stockLimit <= 0) {
                     showToast("Sorry, this item is out of stock!");
-                    addBtn.disabled = false;
                     return;
                 }
 
@@ -518,37 +507,12 @@ document.addEventListener("DOMContentLoaded", () => {
                     return;
                 }
 
-                // SNAPPY LOADING STATE
-                const originalContent = addBtn.innerHTML;
-                addBtn.innerHTML = "<span>Adding...</span>";
-                addBtn.style.opacity = "0.7";
-
-                // 5 Second Loading Delay
-                setTimeout(() => {
-                    if (window.addToCart) {
-                        try {
-                            // 🔥 USE THE SCOPED VARIABLES (currentItemName, etc.)
-                            window.addToCart(currentItemName, currentItemPrice, currentItemImg, currentItemId);
-
-                            addBtn.style.display = "none";
-                            addBtn.style.opacity = "1";
-                            addBtn.innerHTML = originalContent;
-                            addBtn.disabled = false;
-
-                            qtySelector.style.display = "flex";
-                            qtyDisplay.textContent = "x1";
-
-                        } catch (err) {
-                            console.error("Cart Update Error:", err);
-                            addBtn.disabled = false;
-                            addBtn.innerHTML = originalContent;
-                        }
-                    } else {
-                        console.error("addToCart function is not globally available.");
-                        addBtn.disabled = false;
-                        addBtn.innerHTML = originalContent;
-                    }
-                }, 5000);
+                addBtn.style.display = "none";
+                qtySelector.style.display = "flex";
+                qtyDisplay.textContent = "x1";
+                if (window.addToCart) {
+                    window.addToCart(productName, productPrice, productImage, productId);
+                }
             });
         }
 
@@ -596,6 +560,9 @@ document.addEventListener("DOMContentLoaded", () => {
         const idToDelete = cardToDelete.dataset.id;
         const imageUrl = cardToDelete.querySelector('img').src;
 
+        cardToDelete.remove();
+        deletePopup.style.display = "none";
+
         if (idToDelete) {
             const {error: dbError} = await supabaseClient
                 .from("products")
@@ -604,19 +571,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (dbError) {
                 console.error("❌ Error deleting from DB:", dbError);
-                // 🛑 FIX: Check for the Foreign Key constraint error (code 23502)
-                if (dbError.code === '23502') {
-                    showToast("Cannot delete: This product is linked to existing orders! 📦");
-                } else {
-                    showToast("Delete failed. Check console for details.");
-                }
-                deletePopup.style.display = "none";
-                return; // Stop here so the card is NOT removed from the UI
+                return;
             }
-
-            // Only remove from UI if the database deletion was successful
-            cardToDelete.remove();
-            deletePopup.style.display = "none";
 
             if (imageUrl && imageUrl.includes("supabase")) {
                 const filePath = imageUrl.split('/').pop();
@@ -627,10 +583,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 if (storageError) console.error("⚠️ Could not delete image file:", storageError);
             }
-        } else {
-            // Fallback for temporary/unsaved cards
-            cardToDelete.remove();
-            deletePopup.style.display = "none";
         }
     });
 
@@ -910,4 +862,3 @@ document.addEventListener("DOMContentLoaded", () => {
 
     console.log("🚀 Script fully loaded at high line count with Noon UI and Auth Guard!");
 });
-
