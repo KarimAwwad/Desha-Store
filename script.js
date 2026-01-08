@@ -489,18 +489,17 @@ document.addEventListener("DOMContentLoaded", () => {
         const productId = card.dataset.id;
 
         if (addBtn) {
+            // 🛑 NEW: Capture the data here, BEFORE the click even happens
+            // We use different variable names to be 100% safe
+            const currentItemName = product.name;
+            const currentItemPrice = product.price;
+            const currentItemImg = product.image_url;
+            const currentItemId = product.id;
+
             addBtn.addEventListener("click", async () => {
-                // 🛑 RACE CONDITION FIX: Immediately disable
+                // 🛑 RACE CONDITION FIX
                 if (addBtn.disabled) return;
                 addBtn.disabled = true;
-
-                // --- NEW: CAPTURE DATA IMMEDIATELY ---
-                // This stops the "product is not defined" error after the 5s wait
-                const pName = product.name;
-                const pPrice = product.price;
-                const pImg = product.image_url;
-                const pId = product.id;
-                // -------------------------------------
 
                 const stockLimit = parseInt(card.dataset.stock) || 0;
 
@@ -526,13 +525,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 // 5 Second Loading Delay
                 setTimeout(() => {
-                    // 1. 🔥 FIRST: Update the Cart Data
                     if (window.addToCart) {
                         try {
-                            // FIXED: Use the captured variables (pName, pPrice, etc.)
-                            window.addToCart(pName, pPrice, pImg, pId);
+                            // 🔥 USE THE SCOPED VARIABLES (currentItemName, etc.)
+                            window.addToCart(currentItemName, currentItemPrice, currentItemImg, currentItemId);
 
-                            // 2. SECOND: Only if logic succeeds, update UI
                             addBtn.style.display = "none";
                             addBtn.style.opacity = "1";
                             addBtn.innerHTML = originalContent;
@@ -541,22 +538,15 @@ document.addEventListener("DOMContentLoaded", () => {
                             qtySelector.style.display = "flex";
                             qtyDisplay.textContent = "x1";
 
-                            // 🔥 NEW: Trigger the count refresh (Standard function name in cart scripts)
-                            if (typeof updateCartBadge === 'function') updateCartBadge();
-                            if (typeof updateCartCount === 'function') updateCartCount();
-
                         } catch (err) {
                             console.error("Cart Update Error:", err);
-                            showToast("Error updating cart. Please try again.");
                             addBtn.disabled = false;
                             addBtn.innerHTML = originalContent;
-                            addBtn.style.opacity = "1";
                         }
                     } else {
                         console.error("addToCart function is not globally available.");
                         addBtn.disabled = false;
                         addBtn.innerHTML = originalContent;
-                        addBtn.style.opacity = "1";
                     }
                 }, 5000);
             });
