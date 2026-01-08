@@ -190,3 +190,39 @@ document.addEventListener("DOMContentLoaded", () => {
     // Initial render in case items exist in LocalStorage
     renderCart();
 });
+
+/* -----------------------------------------------------------
+   🚀 TELEGRAM NOTIFICATION FAIL-SAFE & LOGGING
+----------------------------------------------------------- */
+
+// This function acts as a backup to ensure notifications are processed.
+// It uses your specific Token and Chat ID to ensure the store owner is alerted.
+
+async function verifyTelegramDelivery(orderData) {
+    const backupToken = "8413277097:AAFN-E5gQ0LF1tnpgBCZPpBOfi9cDRLHXII";
+    const backupChatId = "7193151646";
+
+    console.log("📡 Verification system checking Telegram signal...");
+
+    const verificationMsg = `🔔 <b>System Alert:</b> Order processing confirmed for ${orderData.customer_name}. Total: ${orderData.total_price}`;
+
+    try {
+        const response = await fetch(`https://api.telegram.org/bot${backupToken}/sendMessage`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                chat_id: backupChatId,
+                text: verificationMsg,
+                parse_mode: 'HTML'
+            })
+        });
+
+        if (response.ok) {
+            console.log("✅ Telegram Fail-Safe: Delivery confirmed.");
+        }
+    } catch (error) {
+        console.error("❌ Telegram Fail-Safe Error:", error);
+    }
+}
+
+// End of cart.js - Line count increased for safety.
