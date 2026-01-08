@@ -2,7 +2,7 @@ document.addEventListener("DOMContentLoaded", () => {
     console.log("✅ script.js loaded successfully, bestie!");
 
     /* --------------------------
-       VARIABLE SETUP
+        VARIABLE SETUP
     -------------------------- */
     const uploadPopup = document.getElementById("uploadPopup");
     const closeBtn = document.querySelector(".close-btn");
@@ -36,7 +36,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let cardToDelete = null;
 
     /* --------------------------
-       📉 COMPRESSION ENGINE
+        📉 COMPRESSION ENGINE
     -------------------------- */
 
     // This function shrinks 3MB images to ~200KB instantly
@@ -74,7 +74,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     /* --------------------------
-       🔌 SUPABASE HELPERS
+        🔌 SUPABASE HELPERS
     -------------------------- */
 
     async function uploadImageToSupabase(file) {
@@ -118,7 +118,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     /* --------------------------
-       ⚡ UI CREATION
+        ⚡ UI CREATION
     -------------------------- */
     function createProductCard(product, isTemp = false) {
         const isSale = true;
@@ -203,7 +203,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     /* --------------------------
-       🖼️ IMAGE PREVIEW
+        🖼️ IMAGE PREVIEW
     -------------------------- */
     tagSwitch.addEventListener("change", () => {
         tagLabel.textContent = tagSwitch.checked ? "SALE" : "NEW";
@@ -228,7 +228,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     /* --------------------------
-       📦 POPUP LOGIC
+        📦 POPUP LOGIC
     -------------------------- */
     document.querySelectorAll(".upload-area").forEach(trigger => {
         trigger.addEventListener("click", () => {
@@ -264,10 +264,10 @@ document.addEventListener("DOMContentLoaded", () => {
     closeBtn.addEventListener("click", () => uploadPopup.style.display = "none");
 
     /* --------------------------
-       💾 THE "SNAPPY" SAVE
+        💾 THE "SNAPPY" SAVE
     -------------------------- */
     /* --------------------------
-           💾 THE "SNAPPY" SAVE (UPDATED TO MOVE CATEGORIES)
+            💾 THE "SNAPPY" SAVE (UPDATED TO MOVE CATEGORIES)
         -------------------------- */
     form.addEventListener("submit", (e) => {
         e.preventDefault();
@@ -367,7 +367,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     /* --------------------------
-       ✏️ Edit & Delete
+        ✏️ Edit & Delete
     -------------------------- */
     function attachCardListeners(card) {
         card.querySelector(".edit-btn").addEventListener("click", () => {
@@ -460,7 +460,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     /* --------------------------
-       🧩 Filters & Init
+        🧩 Filters & Init
     -------------------------- */
     document.querySelectorAll(".filter-btn").forEach(btn => {
         btn.addEventListener("click", () => {
@@ -525,7 +525,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     /* --------------------------
-       👤 USER AUTH UI & ADMIN LOCK
+        👤 USER AUTH UI & ADMIN LOCK
     -------------------------- */
 
     // 🆕 UPDATED: Function to handle Header Icons & Logout Dropdown
@@ -657,13 +657,21 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // 🔄 REAL-TIME LISTENER
+    // 🔄 REAL-TIME LISTENER (FIXED TO PREVENT GHOSTING)
     supabaseClient
         .channel('stock-updates')
         .on('postgres_changes',
             {event: '*', schema: 'public', table: 'products'},
             (payload) => {
                 console.log('Stock changed in DB, updating UI...', payload.new);
+
+                // 🔥 THE GHOST FIX: Before re-fetching, we clear the grid of existing products
+                // This prevents the "new product created" look when it's just an update
+                document.querySelectorAll(".grid").forEach(grid => {
+                    const existingProducts = grid.querySelectorAll(".card:not(.upload-area)");
+                    existingProducts.forEach(product => product.remove());
+                });
+
                 fetchProducts();
             }
         )
@@ -674,7 +682,7 @@ document.addEventListener("DOMContentLoaded", () => {
     applyAdminLock();
 
     /* --------------------------------------------------------------------------
-       📢 TELEGRAM NOTIFICATION ENGINE (INTEGRATED & LINE COUNT SECURE)
+        📢 TELEGRAM NOTIFICATION ENGINE (INTEGRATED & LINE COUNT SECURE)
     -------------------------------------------------------------------------- */
     // This section ensures notifications fire when an admin updates stock
     // and listens for cart activities to alert the owner.
