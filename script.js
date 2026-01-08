@@ -518,24 +518,30 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 // 5 Second Loading Delay
                 setTimeout(() => {
-                    // UPDATED: Core logic for cart quantity synchronization
+                    // 1. 🔥 FIRST: Update the Cart Data
                     if (window.addToCart) {
-                        // Ensure these variable names match your loop's 'product' object
-                        window.addToCart(product.name, product.price, product.image_url, product.id);
+                        try {
+                            // Use the product object directly from the loop
+                            window.addToCart(product.name, product.price, product.image_url, product.id);
 
-                        // Only change UI after the logic successfully fires
-                        addBtn.style.display = "none";
-                        addBtn.style.opacity = "1";
-                        addBtn.innerHTML = originalContent;
-                        addBtn.disabled = false;
+                            // 2. SECOND: Only if logic succeeds, update UI
+                            addBtn.style.display = "none";
+                            addBtn.style.opacity = "1";
+                            addBtn.innerHTML = originalContent;
+                            addBtn.disabled = false;
 
-                        qtySelector.style.display = "flex";
-                        qtyDisplay.textContent = "x1";
+                            qtySelector.style.display = "flex";
+                            qtyDisplay.textContent = "x1";
+                        } catch (err) {
+                            console.error("Cart Update Error:", err);
+                            showToast("Error updating cart. Please try again.");
+                            addBtn.disabled = false;
+                            addBtn.innerHTML = originalContent;
+                        }
                     } else {
-                        console.error("Cart system not initialized.");
+                        console.error("addToCart function is not globally available.");
                         addBtn.disabled = false;
                         addBtn.innerHTML = originalContent;
-                        addBtn.style.opacity = "1";
                     }
                 }, 5000);
             });
