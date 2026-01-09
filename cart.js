@@ -30,6 +30,7 @@ document.addEventListener("DOMContentLoaded", () => {
     /* --------------------------
         🎨 TOAST NOTIFICATION SYSTEM
     -------------------------- */
+    // 🔥 FIXED: Attached to window so updateQuantity can see it
     window.showToast = function(message, isError = true) {
         const existingToast = document.querySelector('.desha-toast');
         if (existingToast) existingToast.remove();
@@ -319,7 +320,7 @@ window.updateQuantity = (productId, change) => {
     if (change > 0) {
         // --- ADDING ---
         if (currentCount >= stockLimit) {
-            // 🔥 FIX: Replaced browser alert with polished Toast notification
+            // 🔥 FIXED: Now uses window.showToast instead of browser alert
             if (window.showToast) {
                 window.showToast(`Stock limit reached! Only ${stockLimit} available.`, true);
             }
