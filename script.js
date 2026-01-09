@@ -520,33 +520,48 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         if (plusBtn) {
-            plusBtn.addEventListener("click", () => {
-                let currentQty = parseInt(qtyDisplay.textContent.replace("x", ""));
+            plusBtn.addEventListener("click", (e) => {
+                e.stopPropagation();
+
+                // 1. Get the LIVE count from the actual cart array
+                const currentInCart = cart.filter(item => item.id === productId).length;
                 const stockLimit = parseInt(card.dataset.stock) || 0;
 
-                // 🛑 CHECK IF USER IS EXCEEDING STOCK
-                if (currentQty >= stockLimit) {
-                    showToast(`Limit reached: Only ${stockLimit} units in stock.`);
-                    return; // Stop here
+                // 2. 🛑 CHECK AGAINST ACTUAL DATA
+                if (currentInCart >= stockLimit) {
+                    // Use the global showToast if available, otherwise fallback to alert
+                    const msg = `Limit reached: Only ${stockLimit} units in stock.`;
+                    if (window.showToast) window.showToast(msg, true);
+                    else alert(msg);
+                    return;
                 }
 
-                qtyDisplay.textContent = `x${currentQty + 1}`;
+                // 3. Update Data & UI
                 if (window.addToCart) {
                     window.addToCart(productName, productPrice, productImage, productId);
+                    // The qtyDisplay update is usually handled by syncCardUI or renderCart,
+                    // but we'll update it here for instant feedback:
+                    qtyDisplay.textContent = `x${currentInCart + 1}`;
                 }
             });
         }
 
         if (minusBtn) {
-            minusBtn.addEventListener("click", () => {
-                let currentQty = parseInt(qtyDisplay.textContent.replace("x", ""));
-                if (currentQty > 1) {
-                    qtyDisplay.textContent = `x${currentQty - 1}`;
+            minusBtn.addEventListener("click", (e) => {
+                e.stopPropagation();
+
+                // 1. Get live count
+                const currentInCart = cart.filter(item => item.id === productId).length;
+
+                if (currentInCart > 1) {
                     if (window.removeOneFromCart) window.removeOneFromCart(productId);
+                    qtyDisplay.textContent = `x${currentInCart - 1}`;
                 } else {
+                    // If it's the last item, remove it and flip the UI back to "Add to Cart"
+                    if (window.removeOneFromCart) window.removeOneFromCart(productId);
                     qtySelector.style.display = "none";
                     addBtn.style.display = "block";
-                    if (window.removeOneFromCart) window.removeOneFromCart(productId);
+                    qtyDisplay.textContent = "x1";
                 }
             });
         }
