@@ -126,34 +126,30 @@ document.addEventListener("DOMContentLoaded", () => {
     // --- 3. Global Functions (Called by script.js) ---
     // Added 'id' parameter to match your products(id) reference
     window.addToCart = (name, price, image, id) => {
-        // 1. Get the latest cart data from localStorage (standard for multi-page sites)
-        let cart = JSON.parse(localStorage.getItem('cart')) || [];
+        // 1. Check if it already exists
+        const existingItem = cart.find(item => item.id === id);
 
-        // 2. SAFETY GUARD: Check stock
-        const currentInCart = cart.filter(item => item.id === id).length;
-        const card = document.querySelector(`.card[data-id="${id}"]`);
-        const stockLimit = card ? parseInt(card.dataset.stock) : 999;
-
-        if (currentInCart < stockLimit) {
-            // 3. Add item to array
-            cart.push({name, price, image, id});
-
-            // 4. 🔥 CRITICAL: Save back to localStorage so the Cart Badge sees it
-            localStorage.setItem('cart', JSON.stringify(cart));
-
-            // 5. Run your existing render function
-            if (typeof renderCart === 'function') renderCart();
-
-            // 6. 🔥 UPDATE THE HEADER COUNT (The 0 to 1 fix)
-            const cartBadge = document.getElementById('cart-count'); // Or whatever your ID is
-            if (cartBadge) {
-                cartBadge.textContent = cart.length;
-            }
-
-            console.log(`✅ Added ${name}. Total items in cart: ${cart.length}`);
+        if (existingItem) {
+            // If it exists, just bump the quantity
+            existingItem.quantity += 1;
         } else {
-            console.warn("⚠️ Stock limit reached for ID:", id);
+            // 2. If it doesn't exist (or was deleted), add it fresh
+            cart.push({
+                id: id,
+                name: name,
+                price: parseFloat(price),
+                image: image,
+                quantity: 1
+            });
         }
+
+        // 3. Save and Refresh everything
+        saveCart();
+        renderCart();
+        updateCartCount();
+
+        // 4. Force UI Sync (In case the sidebar and card are out of sync)
+        syncCardUI(id, 1);
     };
 
     window.removeFromCart = (index) => {
