@@ -30,7 +30,7 @@ document.addEventListener("DOMContentLoaded", () => {
     /* --------------------------
         🎨 TOAST NOTIFICATION SYSTEM
     -------------------------- */
-    function showToast(message, isError = true) {
+    window.showToast = function(message, isError = true) {
         const existingToast = document.querySelector('.desha-toast');
         if (existingToast) existingToast.remove();
 
@@ -154,8 +154,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // 4. Force UI Sync (In case the sidebar and card are out of sync)
         if (window.syncCardUI) {
-            const count = cart.filter(item => item.id === id).length;
-            window.syncCardUI(id, count);
+             const count = cart.filter(item => item.id === id).length;
+             window.syncCardUI(id, count);
         }
     };
 
@@ -202,7 +202,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (checkoutBtn) {
         checkoutBtn.onclick = async () => {
             if (cart.length === 0) {
-                showToast("Add some items first! ✨", true);
+                window.showToast("Add some items first! ✨", true);
                 return;
             }
 
@@ -210,7 +210,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const {data: {user}} = await supabaseClient.auth.getUser();
 
             if (!user) {
-                showToast("Please login to complete your order! 🔑", true);
+                window.showToast("Please login to complete your order! 🔑", true);
                 setTimeout(() => {
                     window.location.href = "index_login.html";
                 }, 1500);
@@ -226,7 +226,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (error || !profile) {
                 console.error("Profile fetch error:", error);
-                showToast("Please update your profile with your name and address first!", true);
+                window.showToast("Please update your profile with your name and address first!", true);
                 return;
             }
 
@@ -258,7 +258,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (orderError) {
                 console.error("Database Insert Error:", orderError);
-                showToast("Failed to place order in database.", true);
+                window.showToast("Failed to place order in database.", true);
             } else {
                 // 🚀 UPDATED TELEGRAM LOGIC (HTML MODE FOR BETTER STABILITY)
                 const botToken = "8413277097:AAFN-E5gQOLF1tnpgBCZpPBOfI9cDRLHXII";
@@ -294,7 +294,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     });
                 }
 
-                showToast("Order successfully sent to the shop owner! 🚀", false);
+                window.showToast("Order successfully sent to the shop owner! 🚀", false);
 
                 // Clear cart after successful DB record
                 cart = [];
@@ -319,10 +319,9 @@ window.updateQuantity = (productId, change) => {
     if (change > 0) {
         // --- ADDING ---
         if (currentCount >= stockLimit) {
-            // Show toast if they try to go over stock
-            const existingToast = document.querySelector('.desha-toast');
-            if (!existingToast) { // Simple check to avoid toast spam
-                alert(`Stock limit reached! Only ${stockLimit} available.`);
+            // 🔥 FIX: Replaced browser alert with polished Toast notification
+            if (window.showToast) {
+                window.showToast(`Stock limit reached! Only ${stockLimit} available.`, true);
             }
             return;
         }
