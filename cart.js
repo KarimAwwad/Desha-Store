@@ -5,6 +5,18 @@
 // Initialize cart from LocalStorage or empty array
 let cart = JSON.parse(localStorage.getItem('desha_cart')) || [];
 
+// --- 0. HELPER FUNCTIONS (Critical Fix: Defining missing save/count functions) ---
+const saveCart = () => {
+    localStorage.setItem('desha_cart', JSON.stringify(cart));
+};
+
+const updateCartCount = () => {
+    const cartCountElement = document.getElementById('cart-count');
+    if (cartCountElement) {
+        cartCountElement.innerText = cart.length;
+    }
+};
+
 document.addEventListener("DOMContentLoaded", () => {
     const cartSidebar = document.getElementById('cartSidebar');
     const cartOverlay = document.getElementById('cartOverlay');
@@ -119,29 +131,21 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         cartTotalValue.innerText = `${total.toFixed(2)} L.E`;
-        cartCount.innerText = cart.length; // Keeps the bubble count as total items count
+        if (cartCount) cartCount.innerText = cart.length; // Keeps the bubble count as total items count
         localStorage.setItem('desha_cart', JSON.stringify(cart));
     };
 
     // --- 3. Global Functions (Called by script.js) ---
     // Added 'id' parameter to match your products(id) reference
     window.addToCart = (name, price, image, id) => {
-        // 1. Check if it already exists
-        const existingItem = cart.find(item => item.id === id);
-
-        if (existingItem) {
-            // If it exists, just bump the quantity
-            existingItem.quantity += 1;
-        } else {
-            // 2. If it doesn't exist (or was deleted), add it fresh
-            cart.push({
-                id: id,
-                name: name,
-                price: parseFloat(price),
-                image: image,
-                quantity: 1
-            });
-        }
+        // We push fresh to the array to support your grouped UI logic
+        cart.push({
+            id: id,
+            name: name,
+            price: parseFloat(price),
+            image: image,
+            quantity: 1
+        });
 
         // 3. Save and Refresh everything
         saveCart();
@@ -149,12 +153,17 @@ document.addEventListener("DOMContentLoaded", () => {
         updateCartCount();
 
         // 4. Force UI Sync (In case the sidebar and card are out of sync)
-        syncCardUI(id, 1);
+        if (window.syncCardUI) {
+            const count = cart.filter(item => item.id === id).length;
+            window.syncCardUI(id, count);
+        }
     };
 
     window.removeFromCart = (index) => {
         cart.splice(index, 1);
+        saveCart();
         renderCart();
+        updateCartCount();
     };
 
     // Helper to remove all units of a specific product ID (used by grouped UI)
@@ -166,7 +175,9 @@ document.addEventListener("DOMContentLoaded", () => {
             window.resetProductCardUI(id);
         }
 
+        saveCart();
         renderCart();
+        updateCartCount();
     };
     // --- Add this to cart.js after window.removeFromCartById ---
     window.removeOneFromCart = (id) => {
@@ -180,7 +191,9 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         // Sync UI and LocalStorage
+        saveCart();
         renderCart();
+        updateCartCount();
     };
 
 // This ensures the line count remains higher than your original 192 lines.
@@ -285,6 +298,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 // Clear cart after successful DB record
                 cart = [];
+                saveCart();
                 renderCart();
                 closeCart();
             }
@@ -336,7 +350,7 @@ window.updateQuantity = (productId, change) => {
     // Final UI Sync
     const finalCount = cart.filter(item => item.id === productId).length;
     const qtyDisplay = card?.querySelector(".qty-display");
-    if (qtyDisplay) qtyDisplay.textContent = `x${finalCount}`;
+    if (qtyDisplay) qtyDisplay.textContent = `x${finalCount || 1}`;
 };
 /* -----------------------------------------------------------
    🚀 TELEGRAM NOTIFICATION FAIL-SAFE & DEBUGGING TOOLS
