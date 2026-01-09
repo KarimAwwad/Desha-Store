@@ -31,7 +31,7 @@ document.addEventListener("DOMContentLoaded", () => {
         🎨 TOAST NOTIFICATION SYSTEM
     -------------------------- */
     // 🔥 FIXED: Attached to window so updateQuantity can see it
-    window.showToast = function(message, isError = true) {
+    window.showToast = function (message, isError = true) {
         const existingToast = document.querySelector('.desha-toast');
         if (existingToast) existingToast.remove();
 
@@ -155,8 +155,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // 4. Force UI Sync (In case the sidebar and card are out of sync)
         if (window.syncCardUI) {
-             const count = cart.filter(item => item.id === id).length;
-             window.syncCardUI(id, count);
+            const count = cart.filter(item => item.id === id).length;
+            window.syncCardUI(id, count);
         }
     };
 
@@ -261,31 +261,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 console.error("Database Insert Error:", orderError);
                 window.showToast("Failed to place order in database.", true);
             } else {
-                // 🚀 UPDATED TELEGRAM LOGIC (HTML MODE FOR BETTER STABILITY)
-                const botToken = "8413277097:AAFN-E5gQOLF1tnpgBCZpPBOfI9cDRLHXII";
-                const chatId = "7193151646";
-                const orderSummary = Object.values(groupedCart).map(i => `${i.name} (x${i.quantity})`).join(", ");
-
-                // Using HTML parse mode because Markdown crashes on special characters
-                const telegramMsg = `🛍️ <b>New Order Received!</b>\n\n` +
-                    `👤 <b>Customer:</b> ${profile.full_name}\n` +
-                    `📞 <b>Phone:</b> ${profile.phone}\n` +
-                    `📍 <b>Address:</b> ${profile.address}\n` +
-                    `📦 <b>Items:</b> ${orderSummary}\n` +
-                    `💰 <b>Total:</b> ${cartTotalValue.innerText}\n\n` +
-                    `Check your Admin Dashboard!`;
-
-                fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-                    method: "POST",
-                    headers: {"Content-Type": "application/json"},
-                    body: JSON.stringify({
-                        chat_id: chatId,
-                        text: telegramMsg,
-                        parse_mode: "HTML"
-                    })
-                })
-                    .then(res => console.log("Telegram Response Status:", res.status))
-                    .catch(err => console.error("Telegram Error:", err));
 
                 // 📉 NEW: STOCK DEDUCTION LOGIC
                 for (const item of Object.values(groupedCart)) {
@@ -295,7 +270,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     });
                 }
 
-                window.showToast("Order successfully sent to the shop owner! 🚀", false);
+                window.showToast("Order placed! We'll notify you once it's confirmed. 🛍️", false);
 
                 // Clear cart after successful DB record
                 cart = [];
@@ -352,46 +327,3 @@ window.updateQuantity = (productId, change) => {
     const qtyDisplay = card?.querySelector(".qty-display");
     if (qtyDisplay) qtyDisplay.textContent = `x${finalCount || 1}`;
 };
-/* -----------------------------------------------------------
-   🚀 TELEGRAM NOTIFICATION FAIL-SAFE & DEBUGGING TOOLS
------------------------------------------------------------ */
-
-// This extra section allows us to test the bot independently
-// to ensure the Token and ChatID are 100% functional.
-
-async function testTelegramConnection() {
-    const testToken = "8413277097:AAFN-E5gQOLF1tnpgBCZPpBOfi9cDRLHXII";
-    const testChatId = "7193151646";
-
-    console.log("🛠️ Testing Telegram Bot Connection...");
-
-    try {
-        const response = await fetch(`https://api.telegram.org/bot${testToken}/getMe`);
-        const data = await response.json();
-        if (data.ok) {
-            console.log("✅ Bot is active:", data.result.username);
-        } else {
-            console.error("❌ Bot Token is invalid!");
-        }
-    } catch (err) {
-        console.error("❌ Network error testing Telegram:", err);
-    }
-}
-
-// Global function to trigger a manual alert if needed
-window.forceTelegramAlert = async (customMessage) => {
-    const token = "8413277097:AAFN-E5gQOLF1tnpgBCZPpBOfi9cDRLHXII";
-    const chat = "7193151646";
-
-    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-            chat_id: chat,
-            text: `⚠️ <b>Manual Alert:</b> ${customMessage}`,
-            parse_mode: 'HTML'
-        })
-    });
-};
-
-// End of cart.js - Line count preserved and enhanced.

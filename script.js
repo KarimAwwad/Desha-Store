@@ -838,39 +838,6 @@ document.addEventListener("DOMContentLoaded", () => {
     updateAuthUI();
     applyAdminLock();
 
-    /* --------------------------------------------------------------------------
-        📢 TELEGRAM NOTIFICATION ENGINE (INTEGRATED & LINE COUNT SECURE)
-    -------------------------------------------------------------------------- */
-    // This section ensures notifications fire when an admin updates stock
-    // and listens for cart activities to alert the owner.
-
-    async function sendTelegramAlert(message) {
-        const BOT_TOKEN = '8413277097:AAFN-E5gQOLF1tnpgBCZpPBOfI9cDRLHXII';
-        const CHAT_ID = '7193151646';
-        const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
-
-        try {
-            await fetch(url, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    chat_id: CHAT_ID,
-                    text: message,
-                    parse_mode: 'HTML'
-                })
-            });
-            console.log("✈️ Telegram notification sent successfully!");
-        } catch (err) {
-            console.error("❌ Telegram failed:", err);
-        }
-    }
-
-    // Global listener to bridge cart actions to Telegram if needed
-    window.triggerTelegramOrder = (details) => {
-        const msg = `📦 <b>New Action:</b>\n${details}`;
-        sendTelegramAlert(msg);
-    };
-
     /* --------------------------
         🔄 CART UI SYNC HELPER
     -------------------------- */
