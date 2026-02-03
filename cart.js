@@ -83,6 +83,8 @@ document.addEventListener("DOMContentLoaded", () => {
         cartOverlay.classList.remove('active');
     };
 
+   window.closeCart = closeCart;
+
     if (cartTrigger) cartTrigger.onclick = openCart;
     if (closeCartBtn) closeCartBtn.onclick = closeCart;
     if (cartOverlay) cartOverlay.onclick = closeCart;
@@ -326,4 +328,5 @@ window.updateQuantity = (productId, change) => {
     const finalCount = cart.filter(item => item.id === productId).length;
     const qtyDisplay = card?.querySelector(".qty-display");
     if (qtyDisplay) qtyDisplay.textContent = `x${finalCount || 1}`;
+
 };
