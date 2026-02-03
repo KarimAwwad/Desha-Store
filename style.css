@@ -1199,7 +1199,6 @@ form.reg-form input:focus {
     display: flex;
     align-items: center;
     margin-right: 80px;
-/
 }
 
 .cart-icon-img {
@@ -1705,3 +1704,4 @@ html {
     display: none;
     margin-top: 0;
 }
+
