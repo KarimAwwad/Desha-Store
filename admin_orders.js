@@ -254,24 +254,76 @@ window.closeDeleteOrderModal = () => {
     orderIdToDelete = null;
 };
 
-// 🔥 UPDATED: Added to window to ensure it's accessible everywhere
+// 🔥 UPDATED: Deletes order AND restores stock automatically
 window.handleConfirmDelete = async () => {
     if (!orderIdToDelete) return;
 
-    console.log("Deleting order:", orderIdToDelete);
+    console.log("Processing deletion for:", orderIdToDelete);
 
-    const {error} = await supabaseClient
+    // --- STEP 1: Get Order Details (Before we delete it!) ---
+    // We need to know which product and how much quantity to put back.
+    const { data: orderInfo, error: fetchError } = await supabaseClient
+        .from('orders')
+        .select('product_id, quantity')
+        .eq('id', orderIdToDelete)
+        .single();
+
+    if (fetchError) {
+        console.error("Fetch Error:", fetchError);
+        // If we can't find the order, we can't restore stock, but we might still try to delete
+        // However, it's safer to alert the admin.
+        if (window.showToast) window.showToast("Could not read order details. Delete cancelled.", true);
+        return;
+    }
+
+    // --- STEP 2: Delete the Order ---
+    const { error: deleteError } = await supabaseClient
         .from('orders')
         .delete()
         .eq('id', orderIdToDelete);
 
-    if (error) {
-        console.error("Delete Error:", error);
-        if (window.showToast) window.showToast("Error deleting order: " + error.message, true);
-    } else {
-        console.log("Order deleted successfully.");
-        window.closeDeleteOrderModal();
-        if (window.showToast) window.showToast("Order deleted successfully.", false);
-        fetchOrders(); // Refresh table
+    if (deleteError) {
+        console.error("Delete Error:", deleteError);
+        // Special check for foreign key constraints if cascading is off
+        if (deleteError.code === '23503') {
+             if (window.showToast) window.showToast("Cannot delete: Product still exists.", true);
+        } else {
+             if (window.showToast) window.showToast("Error deleting order: " + deleteError.message, true);
+        }
+        return;
     }
+
+    // --- STEP 3: Restore Stock (Only if delete succeeded) ---
+    // At this point, the order is GONE from the DB. Now we fix the product stock.
+    if (orderInfo && orderInfo.product_id) {
+        
+        // A. Get the current stock of the product to ensure we add to the latest number
+        const { data: product } = await supabaseClient
+            .from('products')
+            .select('stock_quantity')
+            .eq('id', orderInfo.product_id)
+            .single();
+
+        // B. Add the order quantity back to the stock
+        if (product) {
+            const restoredStock = (product.stock_quantity || 0) + orderInfo.quantity;
+            
+            const { error: stockError } = await supabaseClient
+                .from('products')
+                .update({ stock_quantity: restoredStock })
+                .eq('id', orderInfo.product_id);
+
+            if (stockError) {
+                console.error("Stock Restore Failed:", stockError);
+                if (window.showToast) window.showToast("Order deleted, but stock restore failed.", true);
+            } else {
+                 console.log(`♻️ Stock restored! Added ${orderInfo.quantity} back to inventory.`);
+            }
+        }
+    }
+
+    // Success!
+    window.closeDeleteOrderModal();
+    if (window.showToast) window.showToast("Order deleted & Stock Restored! ♻️", false);
+    fetchOrders(); // Refresh table
 };
