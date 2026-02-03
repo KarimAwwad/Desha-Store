@@ -1615,21 +1615,6 @@ form.reg-form input:focus {
     transform: scale(0.9);
 }
 
-.out-of-stock-badge {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: rgba(0, 0, 0, 0.8);
-    color: white;
-    padding: 10px;
-    border-radius: 5px;
-    font-weight: bold;
-    z-index: 10;
-}
-
-/* --- PREMIUM TOUCHES --- */
-
 /* 1. Smooth Scrolling */
 html {
     scroll-behavior: smooth;
@@ -1704,4 +1689,5 @@ html {
     display: none;
     margin-top: 0;
 }
+
 
